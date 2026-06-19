@@ -1,6 +1,8 @@
 import { Request, Response } from 'express';
 import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
 import { User } from '../models/User';
+import { env } from '../config/env';
 import { generateAccessToken, generateRefreshToken } from '../services/tokenService';
 
 export const register = async (req: Request, res: Response) => {
@@ -60,7 +62,7 @@ export const refreshSession = async (req: Request, res: Response) => {
   }
 
   try {
-    const decoded = require('jsonwebtoken').verify(refreshToken, require('../config/env').env.jwtSecret) as { userId: string };
+    const decoded = jwt.verify(refreshToken, env.jwtSecret) as { userId: string };
     const user = await User.findById(decoded.userId);
     if (!user) {
       return res.status(401).json({ success: false, message: 'Invalid refresh token' });
@@ -78,5 +80,8 @@ export const refreshSession = async (req: Request, res: Response) => {
     });
   } catch (error) {
     return res.status(401).json({ success: false, message: 'Invalid refresh token' });
+  }
+};
+
   }
 };

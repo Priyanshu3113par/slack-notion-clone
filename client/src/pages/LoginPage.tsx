@@ -17,6 +17,7 @@ const LoginPage = () => {
       const response = await axios.post('/api/auth/login', { email, password });
       localStorage.setItem('accessToken', response.data.data.accessToken);
       localStorage.setItem('refreshToken', response.data.data.refreshToken);
+      localStorage.setItem('userId', response.data.data.user.id);
       navigate('/app');
     } catch (_err) {
       setError('Invalid email or password. Please try again.');
