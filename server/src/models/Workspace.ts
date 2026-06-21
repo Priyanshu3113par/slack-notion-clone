@@ -1,10 +1,10 @@
-import { Schema, model, Document } from 'mongoose';
+import { Schema, model, Document, Types } from 'mongoose';
 
 export interface IWorkspace extends Document {
   name: string;
   description?: string;
-  owner: string;
-  members: string[];
+  owner: Types.ObjectId | string;
+  members: (Types.ObjectId | string)[];
   inviteCode: string;
   createdAt: Date;
   updatedAt: Date;

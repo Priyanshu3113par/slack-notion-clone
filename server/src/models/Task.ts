@@ -1,11 +1,11 @@
-import { Schema, model, Document } from 'mongoose';
+import { Schema, model, Document, Types } from 'mongoose';
 
 export interface ITask extends Document {
-  workspaceId: string;
+  workspaceId: Types.ObjectId | string;
   title: string;
   description?: string;
   status: 'todo' | 'in-progress' | 'review' | 'completed';
-  assignedTo?: string;
+  assignedTo?: Types.ObjectId | string;
   dueDate?: Date;
   createdAt: Date;
   updatedAt: Date;

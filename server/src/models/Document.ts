@@ -1,10 +1,10 @@
-import { Schema, model, Document } from 'mongoose';
+import { Schema, model, Document as MongooseDocument, Types } from 'mongoose';
 
-export interface IDocument extends Document {
-  workspaceId: string;
+export interface IDocument extends MongooseDocument {
+  workspaceId: Types.ObjectId | string;
   title: string;
   content: string;
-  createdBy: string;
+  createdBy: Types.ObjectId | string;
   createdAt: Date;
   updatedAt: Date;
 }

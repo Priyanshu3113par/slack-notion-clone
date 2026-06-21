@@ -1,10 +1,10 @@
-import { Schema, model, Document } from 'mongoose';
+import { Schema, model, Document, Types } from 'mongoose';
 
 export interface IChannel extends Document {
-  workspaceId: string;
+  workspaceId: Types.ObjectId | string;
   name: string;
   description?: string;
-  createdBy: string;
+  createdBy: Types.ObjectId | string;
   createdAt: Date;
   updatedAt: Date;
 }

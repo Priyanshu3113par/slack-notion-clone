@@ -7,7 +7,7 @@ import { setupSocket } from './services/socketService';
 import { connectRedis } from './config/redis';
 
 const server = http.createServer(app);
-const io = setupSocket(server);
+setupSocket(server);
 
 const start = async () => {
   try {
