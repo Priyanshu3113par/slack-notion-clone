@@ -1,26 +1,34 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
+import { AxiosError } from 'axios';
 import AuthPageShell from '../components/AuthPageShell';
+import api from '../services/api';
 
 const LoginPage = () => {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError('');
+    setLoading(true);
 
     try {
-      const response = await axios.post('/api/auth/login', { email, password });
+      const response = await api.post('/auth/login', { email, password });
       localStorage.setItem('accessToken', response.data.data.accessToken);
       localStorage.setItem('refreshToken', response.data.data.refreshToken);
       localStorage.setItem('userId', response.data.data.user.id);
       navigate('/app');
-    } catch (_err) {
-      setError('Invalid email or password. Please try again.');
+    } catch (err) {
+      const axiosError = err as AxiosError;
+      const message = axiosError.response?.data?.message ?? 'Invalid email or password. Please try again.';
+      setError(message);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -49,19 +57,31 @@ const LoginPage = () => {
             Password
             <input
               id="password"
-              type="password"
+              type={showPassword ? 'text' : 'password'}
               required
               value={password}
               onChange={(event) => setPassword(event.target.value)}
               className="mt-3 w-full rounded-2xl border border-slate-700 bg-slate-900 px-4 py-3 text-slate-100 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-500/30"
+              autoComplete="current-password"
             />
           </label>
+          <div className="mt-3 flex items-center justify-between gap-3 text-sm text-slate-400">
+            <button
+              type="button"
+              onClick={() => setShowPassword((current) => !current)}
+              className="rounded-full border border-slate-700 bg-slate-900/80 px-4 py-2 transition hover:border-slate-500 hover:bg-slate-800"
+            >
+              {showPassword ? 'Hide password' : 'Show password'}
+            </button>
+            <span className="text-slate-500">Password is hidden by default</span>
+          </div>
           {error && <div className="rounded-2xl bg-rose-500/10 px-4 py-3 text-sm text-rose-300">{error}</div>}
           <button
             type="submit"
-            className="mt-4 w-full rounded-2xl bg-gradient-to-r from-sky-500 to-cyan-400 px-5 py-3 text-sm font-semibold text-slate-950 shadow-lg shadow-cyan-500/20 transition hover:from-sky-400 hover:to-cyan-300"
+            disabled={loading}
+            className="mt-4 w-full rounded-2xl bg-gradient-to-r from-sky-500 to-cyan-400 px-5 py-3 text-sm font-semibold text-slate-950 shadow-lg shadow-cyan-500/20 transition hover:from-sky-400 hover:to-cyan-300 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            Continue
+            {loading ? 'Signing in…' : 'Continue'}
           </button>
         </div>
       </form>
