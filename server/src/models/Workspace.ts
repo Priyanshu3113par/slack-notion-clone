@@ -18,7 +18,18 @@ const workspaceSchema = new Schema<IWorkspace>(
     members: [{ type: Schema.Types.ObjectId, ref: 'User' }],
     inviteCode: { type: String, required: true, unique: true }
   },
-  { timestamps: true }
+  {
+    timestamps: true,
+    toJSON: {
+      virtuals: true,
+      versionKey: false,
+      transform: (_doc, ret) => {
+        ret.id = ret._id?.toString();
+        delete ret._id;
+        return ret;
+      }
+    }
+  }
 );
 
 export const Workspace = model<IWorkspace>('Workspace', workspaceSchema);

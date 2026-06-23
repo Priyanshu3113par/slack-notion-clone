@@ -16,7 +16,18 @@ const channelSchema = new Schema<IChannel>(
     description: { type: String, default: '' },
     createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true }
   },
-  { timestamps: true }
+  {
+    timestamps: true,
+    toJSON: {
+      virtuals: true,
+      versionKey: false,
+      transform: (_doc, ret) => {
+        ret.id = ret._id?.toString();
+        delete ret._id;
+        return ret;
+      }
+    }
+  }
 );
 
 export const Channel = model<IChannel>('Channel', channelSchema);

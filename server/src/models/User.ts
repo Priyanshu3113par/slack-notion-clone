@@ -18,7 +18,19 @@ const userSchema = new Schema<IUser>(
     role: { type: String, enum: ['Admin', 'Member'], default: 'Member' },
     avatar: { type: String, default: '' }
   },
-  { timestamps: true }
+  {
+    timestamps: true,
+    toJSON: {
+      virtuals: true,
+      versionKey: false,
+      transform: (_doc, ret) => {
+        ret.id = ret._id?.toString();
+        delete ret._id;
+        delete ret.password;
+        return ret;
+      }
+    }
+  }
 );
 
 export const User = model<IUser>('User', userSchema);

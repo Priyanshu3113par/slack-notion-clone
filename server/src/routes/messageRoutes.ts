@@ -4,6 +4,7 @@ import { getMessages, createMessage } from '../controllers/messageController';
 
 const router = Router();
 
+router.get('/', authenticate, getMessages);
 router.get('/channel/:channelId', authenticate, getMessages);
 router.post('/', authenticate, createMessage);
 

@@ -1,9 +1,20 @@
 import { Request, Response } from 'express';
 import { Message } from '../models/Message';
+import { Channel } from '../models/Channel';
 
 export const getMessages = async (req: Request, res: Response) => {
-  const { channelId } = req.params;
-  const messages = await Message.find({ channelId })
+  const { channelId, workspaceId } = req.query;
+  const filters: Record<string, string> = {};
+
+  if (channelId) {
+    filters.channelId = String(channelId);
+  }
+
+  if (workspaceId) {
+    filters.workspaceId = String(workspaceId);
+  }
+
+  const messages = await Message.find(filters)
     .populate('senderId', 'name email avatar')
     .sort({ createdAt: 1 });
 
@@ -18,7 +29,17 @@ export const createMessage = async (req: Request, res: Response) => {
     return res.status(401).json({ success: false, message: 'Unauthorized' });
   }
 
+  if (!channelId || !message) {
+    return res.status(400).json({ success: false, message: 'Missing channelId or message body' });
+  }
+
+  const channel = await Channel.findById(channelId);
+  if (!channel) {
+    return res.status(404).json({ success: false, message: 'Channel not found' });
+  }
+
   const newMessage = await Message.create({
+    workspaceId: channel.workspaceId,
     channelId,
     senderId: userId,
     message
