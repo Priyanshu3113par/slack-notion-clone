@@ -180,17 +180,8 @@ VITE_API_URL=http://localhost:4000
 - ✅ Workspace switcher UI
 - ✅ Channel list UI
 
-### Week 3: Real-time Chat
-- ✅ Socket.IO integration
-- ✅ Real-time messaging
-- ✅ Typing indicators
-- ✅ Online user tracking
 
-### Week 4: Redis & Deployment
-- ✅ Redis session caching
-- ✅ Docker containerization
-- ✅ GitHub Actions CI/CD
-- ✅ Production-ready configuration
+## Week 2 end completd work with proper timeline
 
 ## Testing
 
