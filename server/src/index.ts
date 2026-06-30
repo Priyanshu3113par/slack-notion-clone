@@ -16,13 +16,13 @@ const start = async () => {
 
     // Connect to Redis
     await connectRedis();
-    log.info('Connected to Redis');
+    log.info('Successfully Connected to Redis');
 
     server.listen(env.port, () => {
       log.info(`Server listening on http://localhost:${env.port}`);
     });
   } catch (error) {
-    log.error('Failed to start server', error);
+    log.error('Failed to start the server', error);
     process.exit(1);
   }
 };
