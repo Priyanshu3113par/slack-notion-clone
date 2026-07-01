@@ -8,6 +8,17 @@ const workspaceSchema = new mongoose_1.Schema({
     owner: { type: mongoose_1.Schema.Types.ObjectId, ref: 'User', required: true },
     members: [{ type: mongoose_1.Schema.Types.ObjectId, ref: 'User' }],
     inviteCode: { type: String, required: true, unique: true }
-}, { timestamps: true });
+}, {
+    timestamps: true,
+    toJSON: {
+        virtuals: true,
+        versionKey: false,
+        transform: (_doc, ret) => {
+            ret.id = ret._id?.toString();
+            delete ret._id;
+            return ret;
+        }
+    }
+});
 exports.Workspace = (0, mongoose_1.model)('Workspace', workspaceSchema);
 //# sourceMappingURL=Workspace.js.map

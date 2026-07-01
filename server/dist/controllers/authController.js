@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.refreshSession = exports.login = exports.register = void 0;
+exports.profile = exports.refreshSession = exports.login = exports.register = void 0;
 const bcrypt_1 = __importDefault(require("bcrypt"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const User_1 = require("../models/User");
@@ -77,4 +77,27 @@ const refreshSession = async (req, res) => {
     }
 };
 exports.refreshSession = refreshSession;
+const profile = async (req, res) => {
+    const userId = req.user?.id;
+    if (!userId) {
+        return res.status(401).json({ success: false, message: 'Authentication required' });
+    }
+    const user = await User_1.User.findById(userId);
+    if (!user) {
+        return res.status(404).json({ success: false, message: 'User not found' });
+    }
+    res.json({
+        success: true,
+        data: {
+            user: {
+                id: user.id,
+                name: user.name,
+                email: user.email,
+                role: user.role,
+                avatar: user.avatar
+            }
+        }
+    });
+};
+exports.profile = profile;
 //# sourceMappingURL=authController.js.map

@@ -25,7 +25,7 @@ const RegisterPage = () => {
       localStorage.setItem('userId', response.data.data.user.id);
       navigate('/app');
     } catch (err) {
-      const axiosError = err as AxiosError;
+      const axiosError = err as AxiosError<{ message?: string }>;
       const message = axiosError.response?.data?.message ?? 'Registration failed. Please try again.';
       setError(message);
     } finally {

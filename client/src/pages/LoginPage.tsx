@@ -24,7 +24,7 @@ const LoginPage = () => {
       localStorage.setItem('userId', response.data.data.user.id);
       navigate('/app');
     } catch (err) {
-      const axiosError = err as AxiosError;
+      const axiosError = err as AxiosError<{ message?: string }>;
       const message = axiosError.response?.data?.message ?? 'Invalid email or password. Please try again.';
       setError(message);
     } finally {

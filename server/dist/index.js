@@ -18,13 +18,13 @@ const start = async () => {
         logger_1.log.info('Connected to MongoDB');
         // Connect to Redis
         await (0, redis_1.connectRedis)();
-        logger_1.log.info('Connected to Redis');
+        logger_1.log.info('Successfully Connected to Redis');
         server.listen(env_1.env.port, () => {
             logger_1.log.info(`Server listening on http://localhost:${env_1.env.port}`);
         });
     }
     catch (error) {
-        logger_1.log.error('Failed to start server', error);
+        logger_1.log.error('Failed to start the server', error);
         process.exit(1);
     }
 };

@@ -37,9 +37,15 @@ const getWorkspaces = async (req, res) => {
 exports.getWorkspaces = getWorkspaces;
 const getWorkspace = async (req, res) => {
     const { id } = req.params;
-    const workspace = await Workspace_1.Workspace.findById(id).populate('members', 'name email avatar').populate('owner', 'name email');
+    const userId = req.user?.id;
+    const workspace = await Workspace_1.Workspace.findById(id)
+        .populate('members', 'name email avatar')
+        .populate('owner', 'name email');
     if (!workspace) {
         return res.status(404).json({ success: false, message: 'Workspace not found' });
+    }
+    if (!userId || !workspace.members.some((member) => member.toString() === userId)) {
+        return res.status(403).json({ success: false, message: 'Forbidden' });
     }
     res.json({ success: true, data: workspace });
 };

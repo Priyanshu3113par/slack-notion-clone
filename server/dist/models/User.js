@@ -8,6 +8,18 @@ const userSchema = new mongoose_1.Schema({
     password: { type: String, required: true },
     role: { type: String, enum: ['Admin', 'Member'], default: 'Member' },
     avatar: { type: String, default: '' }
-}, { timestamps: true });
+}, {
+    timestamps: true,
+    toJSON: {
+        virtuals: true,
+        versionKey: false,
+        transform: (_doc, ret) => {
+            ret.id = ret._id?.toString();
+            delete ret._id;
+            delete ret.password;
+            return ret;
+        }
+    }
+});
 exports.User = (0, mongoose_1.model)('User', userSchema);
 //# sourceMappingURL=User.js.map

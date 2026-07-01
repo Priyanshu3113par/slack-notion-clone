@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect, ChangeEvent, FormEvent } from 'react';
 import { useChatEvents, useSocket } from '../hooks/useSocket';
-import { Message } from '../types/index';
 
 interface ChatWindowProps {
   channelId: string;
@@ -21,9 +20,10 @@ const ChatWindow = ({ channelId, channelName, userId }: ChatWindowProps) => {
   }, [messages]);
 
   const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
-    setInputValue(e.target.value);
+    const nextValue = e.target.value;
+    setInputValue(nextValue);
 
-    if (!isTyping) {
+    if (!isTyping && nextValue.trim()) {
       setIsTyping(true);
       emitTyping(userId, 'User');
     }
@@ -31,16 +31,19 @@ const ChatWindow = ({ channelId, channelName, userId }: ChatWindowProps) => {
     if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
     typingTimeoutRef.current = setTimeout(() => {
       setIsTyping(false);
-      emitStopTyping();
+      emitStopTyping(userId);
     }, 3000);
   };
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
+
+    if (!inputValue.trim()) return;
+
     sendMessage(inputValue, userId);
     setInputValue('');
     setIsTyping(false);
-    emitStopTyping();
+    emitStopTyping(userId);
   };
 
   return (
@@ -66,7 +69,7 @@ const ChatWindow = ({ channelId, channelName, userId }: ChatWindowProps) => {
             ))}
             {typingUsers.length > 0 && (
               <div className="text-xs italic text-slate-500">
-                {typingUsers.join(', ')} {typingUsers.length === 1 ? 'is' : 'are'} typing...
+                {typingUsers.map((user) => user.name).join(', ')} {typingUsers.length === 1 ? 'is' : 'are'} typing...
               </div>
             )}
             <div ref={messagesEndRef} />
