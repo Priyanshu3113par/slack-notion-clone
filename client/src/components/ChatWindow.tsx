@@ -19,13 +19,13 @@ const ChatWindow = ({ channelId, channelName, userId }: ChatWindowProps) => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
     const nextValue = e.target.value;
     setInputValue(nextValue);
 
     if (!isTyping && nextValue.trim()) {
       setIsTyping(true);
-      emitTyping(userId, 'User');
+      emitTyping(userId, 'You');
     }
 
     if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
@@ -47,51 +47,77 @@ const ChatWindow = ({ channelId, channelName, userId }: ChatWindowProps) => {
   };
 
   return (
-    <div className="flex h-full flex-col bg-slate-950">
-      <header className="border-b border-slate-800 bg-slate-900 px-6 py-4">
-        <h2 className="text-lg font-semibold text-white">#{channelName}</h2>
+    <div className="flex h-full flex-col bg-[radial-gradient(circle_at_top,_rgba(56,189,248,0.16),_transparent_24%),linear-gradient(180deg,_#020617_0%,_#071120_100%)]">
+      <header className="border-b border-white/10 bg-slate-900/80 px-6 py-4 backdrop-blur-xl">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <p className="text-sm font-semibold text-white"># {channelName}</p>
+            <p className="text-sm text-slate-400">Focused team conversation with live updates</p>
+          </div>
+          <div className="flex items-center gap-2 rounded-full border border-slate-700 bg-slate-950/70 px-3 py-2 text-sm text-slate-300">
+            <span className="h-2.5 w-2.5 rounded-full bg-emerald-400" />
+            12 online
+          </div>
+        </div>
       </header>
 
-      <div className="flex-1 space-y-4 overflow-y-auto p-6">
+      <div className="flex-1 overflow-y-auto px-6 py-6">
         {messages.length === 0 ? (
-          <div className="flex h-full items-center justify-center text-slate-500">
-            No messages yet. Start a conversation!
+          <div className="flex h-full flex-col items-center justify-center rounded-[2rem] border border-dashed border-slate-700 bg-slate-900/40 p-10 text-center text-slate-400">
+            <p className="text-lg font-semibold text-white">No messages yet</p>
+            <p className="mt-2 max-w-md text-sm leading-6">Start the conversation with a thoughtful update, file, or quick note.</p>
           </div>
         ) : (
-          <>
+          <div className="space-y-4">
             {messages.map((msg) => (
-              <div key={msg._id} className="rounded-lg border border-slate-800 bg-slate-900 p-3">
-                <p className="text-xs text-slate-400">
-                  User {msg.senderId} • {new Date(msg.createdAt).toLocaleTimeString()}
-                </p>
-                <p className="mt-2 text-white">{msg.message}</p>
+              <div key={msg._id} className="flex gap-3 rounded-[1.35rem] border border-white/10 bg-slate-900/70 p-4 shadow-lg shadow-slate-950/20">
+                <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-500 to-cyan-400 font-semibold text-slate-950">
+                  {String(msg.senderId).slice(-2).toUpperCase()}
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-semibold text-white">User {msg.senderId}</p>
+                    <span className="text-xs text-slate-500">{new Date(msg.createdAt).toLocaleTimeString()}</span>
+                  </div>
+                  <p className="mt-2 whitespace-pre-wrap text-sm leading-7 text-slate-300">{msg.message}</p>
+                </div>
               </div>
             ))}
             {typingUsers.length > 0 && (
-              <div className="text-xs italic text-slate-500">
+              <div className="rounded-full border border-slate-800 bg-slate-900/80 px-4 py-2 text-sm text-slate-400">
                 {typingUsers.map((user) => user.name).join(', ')} {typingUsers.length === 1 ? 'is' : 'are'} typing...
               </div>
             )}
             <div ref={messagesEndRef} />
-          </>
+          </div>
         )}
       </div>
 
-      <form onSubmit={handleSubmit} className="border-t border-slate-800 bg-slate-900 p-4">
-        <div className="flex gap-3">
-          <input
-            type="text"
+      <form onSubmit={handleSubmit} className="border-t border-white/10 bg-slate-900/80 p-4 backdrop-blur-xl">
+        <div className="rounded-[1.35rem] border border-slate-700 bg-slate-950/70 p-3">
+          <textarea
             value={inputValue}
             onChange={handleInputChange}
-            placeholder="Type a message..."
-            className="flex-1 rounded-2xl border border-slate-700 bg-slate-800 px-4 py-2 text-sm text-slate-100 outline-none focus:ring-2 focus:ring-sky-500"
+            placeholder={`Message #${channelName}`}
+            rows={3}
+            className="w-full resize-none bg-transparent px-2 py-2 text-sm text-slate-100 outline-none"
           />
-          <button
-            type="submit"
-            className="rounded-2xl bg-sky-500 px-4 py-2 text-sm font-medium text-slate-950 transition hover:bg-sky-400"
-          >
-            Send
-          </button>
+          <div className="mt-3 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2 text-sm text-slate-400">
+              <button type="button" className="rounded-full border border-slate-700 px-3 py-2 transition hover:border-sky-400 hover:text-sky-300">
+                😀
+              </button>
+              <button type="button" className="rounded-full border border-slate-700 px-3 py-2 transition hover:border-sky-400 hover:text-sky-300">
+                📎
+              </button>
+            </div>
+            <button
+              type="submit"
+              className="rounded-full bg-gradient-to-r from-sky-500 to-cyan-400 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:from-sky-400 hover:to-cyan-300"
+            >
+              Send
+            </button>
+          </div>
         </div>
       </form>
     </div>

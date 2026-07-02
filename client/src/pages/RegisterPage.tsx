@@ -2,10 +2,12 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AxiosError } from 'axios';
 import AuthPageShell from '../components/AuthPageShell';
+import { useToast } from '../components/ToastProvider';
 import api from '../services/api';
 
 const RegisterPage = () => {
   const navigate = useNavigate();
+  const { showToast } = useToast();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -23,11 +25,13 @@ const RegisterPage = () => {
       localStorage.setItem('accessToken', response.data.data.accessToken);
       localStorage.setItem('refreshToken', response.data.data.refreshToken);
       localStorage.setItem('userId', response.data.data.user.id);
+      showToast('Account created', 'Your workspace is ready. Start collaborating now.', 'success');
       navigate('/app');
     } catch (err) {
       const axiosError = err as AxiosError<{ message?: string }>;
       const message = axiosError.response?.data?.message ?? 'Registration failed. Please try again.';
       setError(message);
+      showToast('Registration failed', message, 'error');
     } finally {
       setLoading(false);
     }
