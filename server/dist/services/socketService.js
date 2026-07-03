@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.setupSocket = void 0;
 const socket_io_1 = require("socket.io");
+const redis_adapter_1 = require("@socket.io/redis-adapter");
 const Channel_1 = require("../models/Channel");
 const Message_1 = require("../models/Message");
 const redis_1 = require("../config/redis");
@@ -12,6 +13,14 @@ const setupSocket = (server) => {
             methods: ['GET', 'POST']
         }
     });
+    // Bind to Redis Pub/Sub adapter if connected
+    if (redis_1.pubClient && redis_1.subClient) {
+        io.adapter((0, redis_adapter_1.createAdapter)(redis_1.pubClient, redis_1.subClient));
+        console.log('Socket.IO scaled horizontally using Redis Adapter.');
+    }
+    else {
+        console.log('Socket.IO running on default in-memory adapter (Redis offline).');
+    }
     io.on('connection', (socket) => {
         console.log('User connected:', socket.id);
         socket.on('user-online', async (userId) => {
@@ -20,6 +29,7 @@ const setupSocket = (server) => {
             const onlineUsers = await redis_1.redisOps.getSet('online-users');
             io.emit('online-users-update', onlineUsers);
         });
+        // --- Channel / Chat Events ---
         socket.on('join-channel', async (channelId) => {
             socket.join(`channel-${channelId}`);
             const recentMessages = await Message_1.Message.find({ channelId })
@@ -63,6 +73,22 @@ const setupSocket = (server) => {
         socket.on('stop-typing', (data) => {
             socket.to(`channel-${data.channelId}`).emit('user-stopped-typing', data);
         });
+        // --- Document Collaboration Events ---
+        socket.on('join-document', (docId) => {
+            socket.join(`document-${docId}`);
+            console.log(`User joined document: ${docId}`);
+        });
+        socket.on('leave-document', (docId) => {
+            socket.leave(`document-${docId}`);
+            console.log(`User left document: ${docId}`);
+        });
+        socket.on('edit-document', (data) => {
+            socket.to(`document-${data.docId}`).emit('document-updated', data);
+        });
+        socket.on('document-typing', (data) => {
+            socket.to(`document-${data.docId}`).emit('document-user-typing', data);
+        });
+        // --- Disconnect Event ---
         socket.on('disconnect', async () => {
             const userId = socket.data.userId;
             if (userId) {

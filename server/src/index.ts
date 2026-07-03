@@ -15,8 +15,12 @@ const start = async () => {
     log.info('Connected to MongoDB');
 
     // Connect to Redis
-    await connectRedis();
-    log.info('Successfully Connected to Redis');
+    const redisClient = await connectRedis();
+    if (redisClient) {
+      log.info('Successfully Connected to Redis');
+    } else {
+      log.warn('Running without Redis (in-memory mode for cache & WebSockets)');
+    }
 
     server.listen(env.port, () => {
       log.info(`Server listening on http://localhost:${env.port}`);

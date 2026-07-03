@@ -17,8 +17,13 @@ const start = async () => {
         await mongoose_1.default.connect(env_1.env.mongoUri);
         logger_1.log.info('Connected to MongoDB');
         // Connect to Redis
-        await (0, redis_1.connectRedis)();
-        logger_1.log.info('Successfully Connected to Redis');
+        const redisClient = await (0, redis_1.connectRedis)();
+        if (redisClient) {
+            logger_1.log.info('Successfully Connected to Redis');
+        }
+        else {
+            logger_1.log.warn('Running without Redis (in-memory mode for cache & WebSockets)');
+        }
         server.listen(env_1.env.port, () => {
             logger_1.log.info(`Server listening on http://localhost:${env_1.env.port}`);
         });

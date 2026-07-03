@@ -34,3 +34,13 @@ export interface Message {
   message: string;
   createdAt: string;
 }
+
+export interface Document {
+  _id: string;
+  workspaceId: string;
+  title: string;
+  content: string;
+  createdBy: User;
+  createdAt: string;
+  updatedAt: string;
+}
