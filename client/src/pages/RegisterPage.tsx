@@ -15,9 +15,22 @@ const RegisterPage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  // Password Validation
+  const hasLength = password.length >= 8 && password.length <= 15;
+  const hasUpper = /[A-Z]/.test(password);
+  const hasNumber = /\d/.test(password);
+  const hasSpecial = /[!@#$%^&*()_+{}\[\]:;"'<>,.?/~`|-]/.test(password);
+  const isPasswordValid = hasLength && hasUpper && hasNumber && hasSpecial;
+
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError('');
+    
+    if (!isPasswordValid) {
+      setError('Please fulfill all password requirements before registering.');
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -86,21 +99,40 @@ const RegisterPage = () => {
                 autoComplete="new-password"
               />
             </label>
-            <div className="mt-3 flex items-center justify-between gap-3 text-xs text-slate-500">
+            
+            {/* Password Strength UI */}
+            <div className="mt-2 rounded-xl bg-slate-50 border border-slate-100 p-4">
+              <p className="text-xs font-semibold text-slate-700 mb-2">Password Requirements:</p>
+              <ul className="text-xs space-y-1">
+                <li className={`flex items-center gap-2 ${hasLength ? 'text-emerald-600' : 'text-slate-500'}`}>
+                  <span className="text-sm">{hasLength ? '✓' : '○'}</span> 8-15 characters
+                </li>
+                <li className={`flex items-center gap-2 ${hasUpper ? 'text-emerald-600' : 'text-slate-500'}`}>
+                  <span className="text-sm">{hasUpper ? '✓' : '○'}</span> 1 Capital letter
+                </li>
+                <li className={`flex items-center gap-2 ${hasNumber ? 'text-emerald-600' : 'text-slate-500'}`}>
+                  <span className="text-sm">{hasNumber ? '✓' : '○'}</span> 1 Number
+                </li>
+                <li className={`flex items-center gap-2 ${hasSpecial ? 'text-emerald-600' : 'text-slate-500'}`}>
+                  <span className="text-sm">{hasSpecial ? '✓' : '○'}</span> 1 Special character
+                </li>
+              </ul>
+            </div>
+
+            <div className="mt-1 flex items-center justify-between gap-3 text-xs text-slate-500">
               <button
                 type="button"
                 onClick={() => setShowPassword((current) => !current)}
-                className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 font-medium transition hover:border-slate-300 hover:bg-slate-100 text-slate-600"
+                className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 font-medium transition hover:border-slate-300 hover:bg-slate-100 text-slate-600 cursor-pointer"
               >
                 {showPassword ? 'Hide password' : 'Show password'}
               </button>
-              <span>Password is hidden by default</span>
             </div>
           </div>
           {error && <div className="mt-4 rounded-xl bg-rose-50 border border-rose-100 px-4 py-3 text-sm text-rose-600">{error}</div>}
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || (!isPasswordValid && password.length > 0)}
             className="mt-5 w-full rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white shadow-md shadow-indigo-600/10 transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
           >
             {loading ? 'Creating account…' : 'Get Started'}
@@ -112,3 +144,4 @@ const RegisterPage = () => {
 };
 
 export default RegisterPage;
+

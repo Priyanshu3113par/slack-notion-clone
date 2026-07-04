@@ -3,7 +3,15 @@ import { env } from '../config/env';
 import { log } from '../utils/logger';
 
 const client = createClient({
-  url: env.redisUrl
+  url: env.redisUrl,
+  socket: {
+    reconnectStrategy: (retries) => {
+      if (retries > 3) {
+        return new Error('Max retries reached'); // Reject promise after 3 attempts
+      }
+      return 500; // Wait 500ms before retrying
+    }
+  }
 });
 
 client.on('error', (err) => {

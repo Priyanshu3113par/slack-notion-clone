@@ -8,6 +8,21 @@ import { generateAccessToken, generateRefreshToken } from '../services/tokenServ
 export const register = async (req: Request, res: Response) => {
   const { name, email, password } = req.body;
 
+  // Strict email regex (general robust validation)
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    return res.status(400).json({ success: false, message: 'Invalid email address format' });
+  }
+
+  // Password strict validation: 8-15 characters, 1 uppercase, 1 number, 1 special character
+  const passwordRegex = /^(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+{}\[\]:;"'<>,.?/~`|-]).{8,15}$/;
+  if (!passwordRegex.test(password)) {
+    return res.status(400).json({ 
+      success: false, 
+      message: 'Password must be 8-15 characters and include an uppercase letter, a number, and a special character.' 
+    });
+  }
+
   const existingUser = await User.findOne({ email });
   if (existingUser) {
     return res.status(409).json({ success: false, message: 'Email already in use' });
