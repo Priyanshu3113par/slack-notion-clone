@@ -9,6 +9,7 @@ import FeaturesPage from './pages/FeaturesPage';
 import SolutionsPage from './pages/SolutionsPage';
 import PricingPage from './pages/PricingPage';
 import CompanyPage from './pages/CompanyPage';
+import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
   return (
@@ -22,7 +23,7 @@ function App() {
         <Route path="/company" element={<CompanyPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
-        <Route path="/app" element={<DashboardPage />} />
+        <Route path="/app" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
         <Route path="/*" element={<Navigate to="/" replace />} />
       </Routes>
     </WorkspaceProvider>

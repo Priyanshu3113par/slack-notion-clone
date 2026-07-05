@@ -37,6 +37,7 @@ export const setupSocket = (server: HTTPServer) => {
       socket.join(`channel-${channelId}`);
 
       const recentMessages = await Message.find({ channelId })
+        .populate('senderId', 'name avatar')
         .sort({ createdAt: 1 })
         .limit(50)
         .lean();
@@ -46,7 +47,7 @@ export const setupSocket = (server: HTTPServer) => {
         recentMessages.map((message) => ({
           _id: message._id.toString(),
           channelId,
-          senderId: message.senderId.toString(),
+          sender: message.senderId,
           message: message.message,
           createdAt: message.createdAt
         }))
@@ -72,12 +73,14 @@ export const setupSocket = (server: HTTPServer) => {
         message
       });
 
+      const populatedMessage = await newMessage.populate('senderId', 'name avatar');
+
       io.to(`channel-${channelId}`).emit('receive-message', {
-        _id: newMessage._id.toString(),
+        _id: populatedMessage._id.toString(),
         channelId,
-        senderId,
+        sender: populatedMessage.senderId,
         message,
-        createdAt: newMessage.createdAt
+        createdAt: populatedMessage.createdAt
       });
     });
 

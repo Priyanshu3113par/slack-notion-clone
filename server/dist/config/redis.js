@@ -5,7 +5,15 @@ const redis_1 = require("redis");
 const env_1 = require("../config/env");
 const logger_1 = require("../utils/logger");
 const client = (0, redis_1.createClient)({
-    url: env_1.env.redisUrl
+    url: env_1.env.redisUrl,
+    socket: {
+        reconnectStrategy: (retries) => {
+            if (retries > 3) {
+                return new Error('Max retries reached'); // Reject promise after 3 attempts
+            }
+            return 500; // Wait 500ms before retrying
+        }
+    }
 });
 client.on('error', (err) => {
     // Only log if it's connected or in standard mode to prevent excessive spam

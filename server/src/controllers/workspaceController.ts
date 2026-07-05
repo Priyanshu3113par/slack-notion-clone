@@ -11,13 +11,17 @@ export const createWorkspace = async (req: Request, res: Response) => {
   }
 
   const inviteCode = crypto.randomBytes(6).toString('hex').toUpperCase();
-  const workspace = await Workspace.create({
+  const created = await Workspace.create({
     name,
     description,
     owner: userId,
     members: [userId],
     inviteCode
   });
+
+  const workspace = await Workspace.findById(created._id)
+    .populate('owner', 'name email')
+    .populate('members', 'name email avatar');
 
   res.status(201).json({
     success: true,
@@ -32,7 +36,9 @@ export const getWorkspaces = async (req: Request, res: Response) => {
     return res.status(401).json({ success: false, message: 'Unauthorized' });
   }
 
-  const workspaces = await Workspace.find({ members: userId }).populate('owner', 'name email');
+  const workspaces = await Workspace.find({ members: userId })
+    .populate('owner', 'name email')
+    .populate('members', 'name email avatar');
   res.json({ success: true, data: workspaces });
 };
 
@@ -112,7 +118,11 @@ export const joinWorkspace = async (req: Request, res: Response) => {
   workspace.members.push(userId);
   await workspace.save();
 
-  res.json({ success: true, data: workspace });
+  const populated = await Workspace.findById(workspace._id)
+    .populate('owner', 'name email')
+    .populate('members', 'name email avatar');
+
+  res.json({ success: true, data: populated });
 };
 
 export const leaveWorkspace = async (req: Request, res: Response) => {

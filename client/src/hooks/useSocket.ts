@@ -1,7 +1,23 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
 
-const socketUrl = import.meta.env.VITE_SOCKET_URL || 'http://localhost:4000';
+// --- Singleton socket instance ---
+// We create ONE socket for the whole app lifetime, not per-component.
+let globalSocket: Socket | null = null;
+
+const getSocket = (): Socket => {
+  if (!globalSocket || !globalSocket.connected) {
+    const socketUrl = import.meta.env.VITE_SOCKET_URL || 'http://localhost:4000';
+    globalSocket = io(socketUrl, {
+      reconnection: true,
+      reconnectionDelay: 1000,
+      reconnectionAttempts: 15,
+      transports: ['websocket', 'polling'],
+      autoConnect: true,
+    });
+  }
+  return globalSocket;
+};
 
 type TypingUser = {
   userId: string;
@@ -9,39 +25,47 @@ type TypingUser = {
 };
 
 export const useSocket = () => {
-  const [socket, setSocket] = useState<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
+  const socketRef = useRef<Socket>(getSocket());
 
   useEffect(() => {
-    const newSocket = io(socketUrl, {
-      reconnection: true,
-      reconnectionDelay: 1000,
-      reconnectionAttempts: 10,
-      transports: ['websocket']
-    });
+    const socket = socketRef.current;
 
-    newSocket.on('connect', () => {
-      console.log('Socket connected');
+    const onConnect = () => {
       setIsConnected(true);
       const userId = localStorage.getItem('userId');
       if (userId) {
-        newSocket.emit('user-online', userId);
+        socket.emit('user-online', userId);
       }
-    });
+    };
 
-    newSocket.on('disconnect', () => {
-      console.log('Socket disconnected');
+    const onDisconnect = () => {
       setIsConnected(false);
-    });
+    };
 
-    setSocket(newSocket);
+    // Sync initial state
+    setIsConnected(socket.connected);
+
+    socket.on('connect', onConnect);
+    socket.on('disconnect', onDisconnect);
+
+    if (!socket.connected) {
+      socket.connect();
+    } else {
+      // Already connected — emit presence immediately
+      const userId = localStorage.getItem('userId');
+      if (userId) {
+        socket.emit('user-online', userId);
+      }
+    }
 
     return () => {
-      newSocket.disconnect();
+      socket.off('connect', onConnect);
+      socket.off('disconnect', onDisconnect);
     };
   }, []);
 
-  return { socket, isConnected };
+  return { socket: socketRef.current, isConnected };
 };
 
 export const useChatEvents = (socket: Socket | null, channelId: string) => {
