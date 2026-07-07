@@ -10,7 +10,7 @@ const createChannel = async (req, res) => {
         return res.status(401).json({ success: false, message: 'Unauthorized' });
     }
     const workspace = await Workspace_1.Workspace.findById(workspaceId);
-    if (!workspace || !workspace.members.includes(userId)) {
+    if (!workspace || !workspace.members.some((m) => m.toString() === userId)) {
         return res.status(403).json({ success: false, message: 'Forbidden' });
     }
     const channel = await Channel_1.Channel.create({

@@ -11,7 +11,7 @@ export const createChannel = async (req: Request, res: Response) => {
   }
 
   const workspace = await Workspace.findById(workspaceId);
-  if (!workspace || !workspace.members.includes(userId)) {
+  if (!workspace || !workspace.members.some((m) => m.toString() === userId)) {
     return res.status(403).json({ success: false, message: 'Forbidden' });
   }
 

@@ -1,4 +1,4 @@
-import { useContext, useState, useEffect } from 'react';
+import { useContext, useState, useEffect, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { WorkspaceContext } from '../contexts/WorkspaceContext';
 import { workspaceService, channelService } from '../services/workspaceService';
@@ -10,449 +10,398 @@ import { Workspace, Channel, Document } from '../types/index';
 import { useToast } from '../components/ToastProvider';
 import { useSocket } from '../hooks/useSocket';
 
-type DashboardView = 'overview' | 'documents' | 'settings';
-type ModalType = 'create-workspace' | 'join-workspace' | 'create-channel' | 'invite-members' | 'create-document' | null;
+type View = 'overview' | 'documents' | 'settings';
+type Modal = 'create-workspace' | 'join-workspace' | 'create-channel' | 'invite' | 'create-document' | null;
 
 const DashboardPage = () => {
-  const queryClient = useQueryClient();
+  const qc = useQueryClient();
   const { showToast } = useToast();
-  const workspaceContext = useContext(WorkspaceContext);
-  
-  const [activeWorkspace, setActiveWorkspace] = useState<Workspace | null>(workspaceContext?.activeWorkspace || null);
-  const [activeChannel, setActiveChannel] = useState<Channel | null>(null);
-  const [activeView, setActiveView] = useState<DashboardView>('overview');
-  const [activeDocument, setActiveDocument] = useState<Document | null>(null);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [activeModal, setActiveModal] = useState<ModalType>(null);
-  
-  // Socket and Presence
+  const ctx = useContext(WorkspaceContext);
   const { socket } = useSocket();
-  const [onlineUsers, setOnlineUsers] = useState<string[]>([]);
-  
-  const userId = localStorage.getItem('userId') || '';
-  const currentUserName = localStorage.getItem('userName') || 'User';
 
-  // Modal form states
+  const [activeWs, setActiveWs] = useState<Workspace | null>(ctx?.activeWorkspace || null);
+  const [activeChannel, setActiveChannel] = useState<Channel | null>(null);
+  const [activeDoc, setActiveDoc] = useState<Document | null>(null);
+  const [view, setView] = useState<View>('overview');
+  const [modal, setModal] = useState<Modal>(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [onlineUsers, setOnlineUsers] = useState<string[]>([]);
+
+  // Modal form state
   const [wsName, setWsName] = useState('');
   const [wsDesc, setWsDesc] = useState('');
   const [inviteCode, setInviteCode] = useState('');
-  const [channelName, setChannelName] = useState('');
-  const [channelDesc, setChannelDesc] = useState('');
+  const [chName, setChName] = useState('');
+  const [chDesc, setChDesc] = useState('');
   const [docTitle, setDocTitle] = useState('');
+  const [docIcon, setDocIcon] = useState('📄');
 
-  // Socket online users hook
+  const userId = localStorage.getItem('userId') || '';
+  const userName = localStorage.getItem('userName') || 'User';
+
   useEffect(() => {
     if (!socket) return;
-    
-    socket.on('online-users-update', (users: string[]) => {
-      setOnlineUsers(users);
-    });
-
-    return () => {
-      socket.off('online-users-update');
-    };
+    socket.on('online-users-update', setOnlineUsers);
+    return () => { socket.off('online-users-update', setOnlineUsers); };
   }, [socket]);
 
-  // Fetch workspaces
-  const { data: workspacesData, isLoading: workspacesLoading } = useQuery({
-    queryKey: ['workspaces'],
-    queryFn: () => workspaceService.getWorkspaces()
-  });
+  const { data: wsData, isLoading } = useQuery({ queryKey: ['workspaces'], queryFn: workspaceService.getWorkspaces });
+  const { data: chData } = useQuery({ queryKey: ['channels', activeWs?._id], queryFn: () => activeWs ? channelService.getChannels(activeWs._id) : Promise.resolve(null), enabled: !!activeWs?._id });
+  const { data: docData, refetch: refetchDocs } = useQuery({ queryKey: ['documents', activeWs?._id], queryFn: () => activeWs ? documentService.getDocuments(activeWs._id) : Promise.resolve(null), enabled: !!activeWs?._id });
 
-  // Fetch channels
-  const { data: channelsData } = useQuery({
-    queryKey: ['channels', activeWorkspace?._id],
-    queryFn: () => (activeWorkspace ? channelService.getChannels(activeWorkspace._id) : Promise.resolve(null)),
-    enabled: !!activeWorkspace?._id
-  });
+  const workspaces: Workspace[] = wsData?.data?.data || [];
+  const channels: Channel[] = chData?.data?.data || [];
+  const documents: Document[] = docData?.data?.data || [];
 
-  // Fetch documents
-  const { data: documentsData, refetch: refetchDocs } = useQuery({
-    queryKey: ['documents', activeWorkspace?._id],
-    queryFn: () => (activeWorkspace ? documentService.getDocuments(activeWorkspace._id) : Promise.resolve(null)),
-    enabled: !!activeWorkspace?._id
-  });
+  const closeModal = () => {
+    setModal(null);
+    setWsName(''); setWsDesc(''); setInviteCode(''); setChName(''); setChDesc(''); setDocTitle(''); setDocIcon('📄');
+  };
 
-  const workspaces = workspacesData?.data?.data || [];
-  const channels = channelsData?.data?.data || [];
-  const documents = documentsData?.data?.data || [];
-
-  // Handle Workspace Creation
-  const handleCreateWorkspace = async (e: React.FormEvent) => {
+  const handleCreateWs = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!wsName.trim()) return;
-
     try {
-      const res = await workspaceService.createWorkspace(wsName, wsDesc);
-      if (res.data?.success) {
-        showToast('Workspace Created', `Successfully created workspace "${wsName}"`, 'success');
-        queryClient.invalidateQueries({ queryKey: ['workspaces'] });
-        setActiveWorkspace(res.data.data);
-        setActiveModal(null);
-        setWsName('');
-        setWsDesc('');
+      const r = await workspaceService.createWorkspace(wsName, wsDesc);
+      if (r.data?.success) {
+        showToast('Workspace Created', `"${wsName}" is ready!`, 'success');
+        qc.invalidateQueries({ queryKey: ['workspaces'] });
+        setActiveWs(r.data.data); ctx?.setActiveWorkspace(r.data.data); closeModal();
       }
-    } catch (err: any) {
-      showToast('Error', err.response?.data?.message || 'Failed to create workspace', 'error');
-    }
+    } catch (e: any) { showToast('Error', e.response?.data?.message || 'Failed', 'error'); }
   };
 
-  // Handle Joining Workspace
-  const handleJoinWorkspace = async (e: React.FormEvent) => {
+  const handleJoinWs = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!inviteCode.trim()) return;
-
     try {
-      const res = await workspaceService.joinWorkspace(inviteCode);
-      if (res.data?.success) {
-        showToast('Workspace Joined', `Successfully joined workspace "${res.data.data.name}"`, 'success');
-        queryClient.invalidateQueries({ queryKey: ['workspaces'] });
-        setActiveWorkspace(res.data.data);
-        setActiveModal(null);
-        setInviteCode('');
+      const r = await workspaceService.joinWorkspace(inviteCode);
+      if (r.data?.success) {
+        showToast('Joined!', `Welcome to "${r.data.data.name}"`, 'success');
+        qc.invalidateQueries({ queryKey: ['workspaces'] });
+        setActiveWs(r.data.data); ctx?.setActiveWorkspace(r.data.data); closeModal();
       }
-    } catch (err: any) {
-      showToast('Error', err.response?.data?.message || 'Invalid invite code or already a member', 'error');
-    }
+    } catch (e: any) { showToast('Error', e.response?.data?.message || 'Invalid code', 'error'); }
   };
 
-  // Handle Channel Creation
-  const handleCreateChannel = async (e: React.FormEvent) => {
+  const handleCreateCh = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!channelName.trim() || !activeWorkspace) return;
-
+    if (!activeWs) return;
     try {
-      const res = await channelService.createChannel(activeWorkspace._id, channelName, channelDesc);
-      if (res.data?.success) {
-        showToast('Channel Created', `Successfully created channel #${channelName}`, 'success');
-        queryClient.invalidateQueries({ queryKey: ['channels', activeWorkspace._id] });
-        setActiveChannel(res.data.data);
-        setActiveModal(null);
-        setChannelName('');
-        setChannelDesc('');
+      const r = await channelService.createChannel(activeWs._id, chName, chDesc);
+      if (r.data?.success) {
+        showToast('Channel Created', `#${chName} is live!`, 'success');
+        qc.invalidateQueries({ queryKey: ['channels', activeWs._id] });
+        setActiveChannel(r.data.data); closeModal();
       }
-    } catch (err: any) {
-      showToast('Error', err.response?.data?.message || 'Failed to create channel', 'error');
-    }
+    } catch (e: any) { showToast('Error', e.response?.data?.message || 'Failed', 'error'); }
   };
 
-  // Handle Document Creation
-  const handleCreateDocument = async (e: React.FormEvent) => {
+  const handleCreateDoc = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!docTitle.trim() || !activeWorkspace) return;
-
+    if (!activeWs) return;
     try {
-      const res = await documentService.createDocument(activeWorkspace._id, docTitle, '');
-      if (res.data?.success) {
-        showToast('Document Created', `Successfully created document "${docTitle}"`, 'success');
-        refetchDocs();
-        setActiveDocument(res.data.data);
-        setActiveModal(null);
-        setDocTitle('');
+      const r = await documentService.createDocument(activeWs._id, docTitle, '', docIcon);
+      if (r.data?.success) {
+        showToast('Document Created', `"${docTitle}" is ready to edit!`, 'success');
+        refetchDocs(); setActiveDoc(r.data.data); closeModal();
       }
-    } catch (err: any) {
-      showToast('Error', err.response?.data?.message || 'Failed to create document', 'error');
-    }
+    } catch (e: any) { showToast('Error', e.response?.data?.message || 'Failed', 'error'); }
   };
 
-  // Handle Document Deletion
-  const handleDeleteDocument = async (docId: string) => {
-    if (!confirm('Are you sure you want to delete this document?')) return;
-
+  const handleDeleteDoc = async (docId: string) => {
+    if (!confirm('Delete this document?')) return;
     try {
-      const res = await documentService.deleteDocument(docId);
-      if (res.data?.success) {
-        showToast('Document Deleted', 'Document deleted successfully.', 'success');
-        refetchDocs();
-      }
-    } catch (err: any) {
-      showToast('Error', err.response?.data?.message || 'Failed to delete document', 'error');
-    }
+      await documentService.deleteDocument(docId);
+      showToast('Deleted', 'Document removed.', 'success');
+      refetchDocs();
+    } catch (e: any) { showToast('Error', e.response?.data?.message || 'Failed', 'error'); }
   };
 
-  if (workspacesLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-50 text-slate-600">
-        <div className="w-full max-w-3xl space-y-5 rounded-3xl border border-slate-200 bg-white p-8 shadow-md text-center">
-          <div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-indigo-600 border-t-transparent" />
-          <p className="font-semibold text-slate-800">Loading your collaborative workspace...</p>
-        </div>
+  const DOC_ICONS = ['📄','📝','📋','🚀','💡','🎯','✅','📌','🔥','⭐','📈','🎨'];
+
+  if (isLoading) return (
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-indigo-50 to-slate-100">
+      <div className="text-center space-y-4">
+        <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-indigo-600 border-t-transparent" />
+        <p className="text-slate-600 font-medium">Loading your workspace…</p>
       </div>
-    );
-  }
+    </div>
+  );
+
+  // If document is open
+  if (activeWs && activeDoc) return (
+    <div className="flex h-screen overflow-hidden">
+      <div className={`fixed inset-y-0 left-0 z-40 transform transition-transform duration-300 md:static md:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+        <Sidebar activeWorkspace={activeWs} activeChannel={activeChannel} channels={channels} onlineUsers={onlineUsers}
+          onWorkspaceChange={ws => { setActiveWs(ws); setActiveChannel(null); setActiveDoc(null); ctx?.setActiveWorkspace(ws); setSidebarOpen(false); }}
+          onChannelChange={ch => { setActiveChannel(ch); setActiveDoc(null); setSidebarOpen(false); }}
+          onAddWorkspace={() => setModal('create-workspace')} onJoinWorkspace={() => setModal('join-workspace')} onAddChannel={() => setModal('create-channel')} />
+      </div>
+      <main className="flex flex-1 flex-col overflow-hidden">
+        <DocumentEditor documentId={activeDoc._id} userId={userId} userName={userName} onClose={() => { setActiveDoc(null); refetchDocs(); }} />
+      </main>
+    </div>
+  );
+
+  // If channel is open
+  if (activeWs && activeChannel) return (
+    <div className="flex h-screen overflow-hidden">
+      {sidebarOpen && <div className="fixed inset-0 z-30 bg-black/20 md:hidden" onClick={() => setSidebarOpen(false)} />}
+      <div className={`fixed inset-y-0 left-0 z-40 transform transition-transform duration-300 md:static md:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+        <Sidebar activeWorkspace={activeWs} activeChannel={activeChannel} channels={channels} onlineUsers={onlineUsers}
+          onWorkspaceChange={ws => { setActiveWs(ws); setActiveChannel(null); setActiveDoc(null); ctx?.setActiveWorkspace(ws); setSidebarOpen(false); }}
+          onChannelChange={ch => { setActiveChannel(ch); setActiveDoc(null); setSidebarOpen(false); }}
+          onAddWorkspace={() => setModal('create-workspace')} onJoinWorkspace={() => setModal('join-workspace')} onAddChannel={() => setModal('create-channel')} />
+      </div>
+      <main className="flex flex-1 flex-col overflow-hidden">
+        <ChatWindow channelId={activeChannel._id} channelName={activeChannel.name} userId={userId} />
+      </main>
+    </div>
+  );
 
   return (
-    <div className="flex h-screen overflow-hidden bg-white text-slate-800">
-      {/* Mobile Sidebar Trigger */}
-      <div className="md:hidden">
-        <button
-          onClick={() => setIsSidebarOpen(true)}
-          className="fixed left-4 top-4 z-40 rounded-xl border border-slate-200 bg-white p-2.5 text-slate-700 shadow-md cursor-pointer"
-          aria-label="Open workspace navigation"
-        >
-          ☰
-        </button>
+    <div className="flex h-screen overflow-hidden bg-slate-50">
+      {/* Mobile overlay */}
+      {sidebarOpen && <div className="fixed inset-0 z-30 bg-black/20 md:hidden" onClick={() => setSidebarOpen(false)} />}
+
+      {/* Mobile trigger */}
+      <button onClick={() => setSidebarOpen(true)} className="fixed left-4 top-4 z-40 md:hidden rounded-xl border border-slate-200 bg-white p-2 shadow-md cursor-pointer">☰</button>
+
+      {/* Sidebar */}
+      <div className={`fixed inset-y-0 left-0 z-40 transform transition-transform duration-300 md:static md:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+        <Sidebar activeWorkspace={activeWs} activeChannel={activeChannel} channels={channels} onlineUsers={onlineUsers}
+          onWorkspaceChange={ws => { setActiveWs(ws); setActiveChannel(null); setActiveDoc(null); setView('overview'); ctx?.setActiveWorkspace(ws); setSidebarOpen(false); }}
+          onChannelChange={ch => { setActiveChannel(ch); setActiveDoc(null); setSidebarOpen(false); }}
+          onAddWorkspace={() => setModal('create-workspace')} onJoinWorkspace={() => setModal('join-workspace')} onAddChannel={() => setModal('create-channel')} />
       </div>
 
-      {isSidebarOpen && <div className="fixed inset-0 z-30 bg-slate-900/20 backdrop-blur-xs md:hidden" onClick={() => setIsSidebarOpen(false)} />}
-
-      <div className={`fixed inset-y-0 left-0 z-40 transform transition-transform duration-300 md:static md:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-        <Sidebar
-          activeWorkspace={activeWorkspace}
-          activeChannel={activeChannel}
-          onWorkspaceChange={(ws) => {
-            setActiveWorkspace(ws);
-            setActiveChannel(null);
-            setActiveDocument(null);
-            setActiveView('overview');
-            setIsSidebarOpen(false);
-            if (workspaceContext) {
-              workspaceContext.setActiveWorkspace(ws);
-            }
-          }}
-          onChannelChange={(channel) => {
-            setActiveChannel(channel);
-            setActiveDocument(null);
-            setIsSidebarOpen(false);
-          }}
-          channels={channels}
-          onAddWorkspace={() => setActiveModal('create-workspace')}
-          onJoinWorkspace={() => setActiveModal('join-workspace')}
-          onAddChannel={() => setActiveModal('create-channel')}
-          onlineUsers={onlineUsers}
-        />
-      </div>
-
-      <main className="flex flex-1 flex-col overflow-hidden bg-slate-50/50">
-        {/* Render Collaborative Document Editor if active */}
-        {activeWorkspace && activeDocument ? (
-          <DocumentEditor
-            documentId={activeDocument._id}
-            userId={userId}
-            userName={currentUserName}
-            onClose={() => {
-              setActiveDocument(null);
-              refetchDocs();
-            }}
-          />
-        ) : activeWorkspace && activeChannel ? (
-          <ChatWindow channelId={activeChannel._id} channelName={activeChannel.name} userId={userId} />
-        ) : activeWorkspace ? (
+      {/* Main */}
+      <main className="flex flex-1 flex-col overflow-hidden">
+        {activeWs ? (
           <>
-            {/* Workspace Dashboard Header */}
-            <header className="border-b border-slate-200 bg-white px-6 py-5 shadow-sm">
-              <div className="flex flex-wrap items-center justify-between gap-4">
-                <div>
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-indigo-600">Workspace Dashboard</p>
-                  <h1 className="mt-1 text-2xl font-bold text-slate-800">{activeWorkspace.name}</h1>
-                  <p className="mt-1 text-xs text-slate-500">{activeWorkspace.description || 'A unified, clean workspace for real-time collaboration.'}</p>
+            {/* Workspace Header */}
+            <header className="border-b border-slate-200 bg-white px-6 py-4 shadow-sm flex-shrink-0">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 text-white font-bold text-lg flex-shrink-0">
+                    {activeWs.name.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="min-w-0">
+                    <h1 className="text-lg font-bold text-slate-900 truncate">{activeWs.name}</h1>
+                    <p className="text-xs text-slate-500 truncate">{activeWs.description || 'Your collaborative workspace'}</p>
+                  </div>
                 </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <button
-                    onClick={() => setActiveModal('invite-members')}
-                    className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition cursor-pointer"
-                  >
-                    Invite code
+                <div className="flex items-center gap-2">
+                  <button onClick={() => setModal('invite')} className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition cursor-pointer">
+                    🔗 Invite
+                  </button>
+                  <button onClick={() => { setModal('create-channel'); }} className="flex items-center gap-1.5 rounded-xl bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-700 transition cursor-pointer">
+                    + Channel
                   </button>
                 </div>
               </div>
 
-              {/* Tab Navigation */}
-              <div className="mt-6 flex gap-1.5 border-t border-slate-100 pt-4">
-                {([
-                  { id: 'overview', label: 'Overview' },
-                  { id: 'documents', label: 'Documents' },
-                  { id: 'settings', label: 'Preferences & Settings' }
-                ] as const).map((tab) => (
-                  <button
-                    key={tab.id}
-                    onClick={() => {
-                      setActiveView(tab.id);
-                      setActiveChannel(null);
-                    }}
-                    className={`rounded-full px-4 py-1.5 text-xs font-semibold transition cursor-pointer ${
-                      activeView === tab.id
-                        ? 'bg-indigo-600 text-white shadow-sm'
-                        : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
-                    }`}
-                  >
-                    {tab.label}
+              {/* Tabs */}
+              <div className="mt-4 flex gap-1 border-t border-slate-100 pt-3">
+                {([['overview','Overview'],['documents','Documents'],['settings','Settings']] as const).map(([id, label]) => (
+                  <button key={id} onClick={() => { setView(id); setActiveChannel(null); }}
+                    className={`rounded-full px-4 py-1.5 text-xs font-semibold transition cursor-pointer ${view===id ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100'}`}>
+                    {label}
                   </button>
                 ))}
               </div>
             </header>
 
-            {/* Dashboard Content Pages */}
+            {/* Content */}
             <div className="flex-1 overflow-y-auto p-6">
-              {activeView === 'overview' && (
+              {/* OVERVIEW */}
+              {view === 'overview' && (
                 <div className="space-y-6 max-w-5xl">
-                  {/* Overview Stats */}
-                  <div className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm">
-                    <h2 className="text-sm font-bold uppercase tracking-wider text-slate-400">Workspace at a glance</h2>
-                    <div className="mt-5 grid gap-4 sm:grid-cols-4">
-                      {[
-                        { label: 'Total Members', value: activeWorkspace.members.length },
-                        { label: 'Active Channels', value: channels.length },
-                        { label: 'Collaborative Docs', value: documents.length },
-                        { label: 'Active Online', value: onlineUsers.filter(uid => activeWorkspace.members.some(m => m.id === uid)).length }
-                      ].map((stat) => (
-                        <div key={stat.label} className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
-                          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{stat.label}</p>
-                          <p className="mt-1 text-2xl font-bold text-indigo-600">{stat.value}</p>
-                        </div>
-                      ))}
-                    </div>
+                  {/* Stats */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                    {[
+                      { label: 'Members', value: activeWs.members.length, icon: '👥', color: 'bg-indigo-50 text-indigo-700' },
+                      { label: 'Channels', value: channels.length, icon: '💬', color: 'bg-sky-50 text-sky-700' },
+                      { label: 'Documents', value: documents.length, icon: '📄', color: 'bg-violet-50 text-violet-700' },
+                      { label: 'Online', value: onlineUsers.filter(uid => activeWs.members.some(m => m.id === uid || (m as any)._id?.toString() === uid)).length, icon: '🟢', color: 'bg-emerald-50 text-emerald-700' },
+                    ].map(s => (
+                      <div key={s.label} className={`rounded-2xl border border-slate-100 bg-white p-5 shadow-sm hover:shadow-md transition`}>
+                        <div className="text-2xl mb-2">{s.icon}</div>
+                        <p className="text-3xl font-bold text-slate-800">{s.value}</p>
+                        <p className="text-xs text-slate-500 mt-1">{s.label}</p>
+                      </div>
+                    ))}
                   </div>
 
                   <div className="grid gap-6 md:grid-cols-2">
-                    {/* Recent Activities */}
-                    <div className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm">
-                      <h3 className="text-sm font-bold uppercase tracking-wider text-slate-400 mb-4">Workspace Info</h3>
-                      <div className="space-y-3.5 text-slate-600 text-sm">
-                        <div className="flex justify-between py-2 border-b border-slate-50">
-                          <span className="font-medium text-slate-400">Owner</span>
-                          <span className="font-semibold text-slate-700">{activeWorkspace.owner.name}</span>
-                        </div>
-                        <div className="flex justify-between py-2 border-b border-slate-50">
-                          <span className="font-medium text-slate-400">Created On</span>
-                          <span className="text-slate-700">{new Date(activeWorkspace.createdAt).toLocaleDateString()}</span>
-                        </div>
-                        <div className="flex justify-between py-2 border-b border-slate-50">
-                          <span className="font-medium text-slate-400">Invite Code</span>
-                          <span className="font-mono text-indigo-600 font-semibold">{activeWorkspace.inviteCode}</span>
-                        </div>
+                    {/* Channels quick list */}
+                    <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
+                      <div className="flex items-center justify-between mb-4">
+                        <h2 className="text-sm font-bold text-slate-700">Channels</h2>
+                        <button onClick={() => setModal('create-channel')} className="text-xs text-indigo-600 hover:underline cursor-pointer">+ New</button>
                       </div>
+                      {channels.length > 0 ? (
+                        <div className="space-y-2">
+                          {channels.slice(0,6).map(ch => (
+                            <button key={ch._id} onClick={() => setActiveChannel(ch)}
+                              className="flex w-full items-center gap-3 rounded-xl border border-slate-100 p-3 text-left hover:bg-indigo-50 hover:border-indigo-100 transition cursor-pointer group">
+                              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 group-hover:bg-indigo-100 text-slate-600 font-bold text-sm">#</span>
+                              <div>
+                                <p className="text-sm font-semibold text-slate-800">{ch.name}</p>
+                                {ch.description && <p className="text-xs text-slate-400 truncate">{ch.description}</p>}
+                              </div>
+                              <span className="ml-auto text-xs text-indigo-600 opacity-0 group-hover:opacity-100 transition">Open →</span>
+                            </button>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="rounded-xl border border-dashed border-slate-200 p-6 text-center text-xs text-slate-400">
+                          <p className="font-semibold text-slate-600 mb-1">No channels yet</p>
+                          <button onClick={() => setModal('create-channel')} className="text-indigo-600 hover:underline cursor-pointer">Create your first channel →</button>
+                        </div>
+                      )}
                     </div>
 
-                    {/* Members List */}
-                    <div className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm">
-                      <h3 className="text-sm font-bold uppercase tracking-wider text-slate-400 mb-4">Team Members</h3>
-                      <div className="space-y-3 max-h-[220px] overflow-y-auto pr-1">
-                        {activeWorkspace.members.map((member) => {
-                          const isOnline = onlineUsers.includes(member.id);
+                    {/* Members */}
+                    <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
+                      <div className="flex items-center justify-between mb-4">
+                        <h2 className="text-sm font-bold text-slate-700">Team Members</h2>
+                        <button onClick={() => setModal('invite')} className="text-xs text-indigo-600 hover:underline cursor-pointer">Invite</button>
+                      </div>
+                      <div className="space-y-2 max-h-[240px] overflow-y-auto">
+                        {activeWs.members.map((m: any) => {
+                          const memberId = m.id || m._id?.toString();
+                          const isOnline = onlineUsers.includes(memberId);
                           return (
-                            <div key={member.id} className="flex items-center gap-3 rounded-xl border border-slate-100 bg-slate-50/50 p-2.5">
-                              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-100 text-indigo-700 font-bold text-xs uppercase">
-                                {member.name.charAt(0)}
+                            <div key={memberId} className="flex items-center gap-3 rounded-xl p-2.5 hover:bg-slate-50 transition">
+                              <div className="relative">
+                                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-100 to-violet-100 text-indigo-700 font-bold text-sm">
+                                  {m.name?.charAt(0).toUpperCase() || '?'}
+                                </div>
+                                <span className={`absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-white ${isOnline ? 'bg-emerald-500' : 'bg-slate-300'}`} />
                               </div>
-                              <div className="flex-1 min-w-0">
-                                <p className="text-xs font-semibold text-slate-800 truncate">{member.name}</p>
-                                <p className="text-[10px] text-slate-400 truncate">{member.email}</p>
+                              <div className="min-w-0 flex-1">
+                                <p className="text-xs font-semibold text-slate-800 truncate">{m.name}</p>
+                                <p className="text-[10px] text-slate-400 truncate">{m.email}</p>
                               </div>
-                              <span className={`h-2 w-2 rounded-full ${isOnline ? 'bg-emerald-500 shadow-sm' : 'bg-slate-300'}`} />
+                              {isOnline && <span className="text-[10px] text-emerald-600 font-medium">Online</span>}
                             </div>
                           );
                         })}
                       </div>
                     </div>
                   </div>
-                </div>
-              )}
 
-              {activeView === 'documents' && (
-                <div className="space-y-6 max-w-5xl">
-                  {/* Document Dashboard list */}
-                  <div className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm">
-                    <div className="mb-5 flex flex-wrap items-center justify-between gap-4">
-                      <div>
-                        <h3 className="text-lg font-bold text-slate-800">Collaborative Documents</h3>
-                        <p className="text-xs text-slate-500">Live text synchronization and side-by-side markdown editing.</p>
+                  {/* Recent Docs */}
+                  {documents.length > 0 && (
+                    <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
+                      <div className="flex items-center justify-between mb-4">
+                        <h2 className="text-sm font-bold text-slate-700">Recent Documents</h2>
+                        <button onClick={() => setView('documents')} className="text-xs text-indigo-600 hover:underline cursor-pointer">View all →</button>
                       </div>
-                      <button
-                        onClick={() => setActiveModal('create-document')}
-                        className="rounded-xl bg-indigo-600 px-4 py-2 text-xs font-semibold text-white shadow-md shadow-indigo-600/10 hover:bg-indigo-700 transition cursor-pointer"
-                      >
-                        + New Document
-                      </button>
-                    </div>
-
-                    {documents.length > 0 ? (
-                      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                        {documents.map((doc: Document) => (
-                          <div key={doc._id} className="flex flex-col rounded-2xl border border-slate-100 bg-slate-50/50 p-4 shadow-xs hover:shadow-md transition">
-                            <div className="flex-1">
-                              <h4 className="font-bold text-slate-800 truncate" title={doc.title}>{doc.title}</h4>
-                              <p className="mt-1 text-[10px] text-slate-400">
-                                Created by {doc.createdBy?.name || 'Unknown'}
-                              </p>
-                              <p className="mt-1 text-[10px] text-slate-400">
-                                Updated {new Date(doc.updatedAt).toLocaleDateString()}
-                              </p>
+                      <div className="grid gap-3 sm:grid-cols-3">
+                        {documents.slice(0,3).map((d: Document) => (
+                          <button key={d._id} onClick={() => setActiveDoc(d)}
+                            className="flex items-center gap-3 rounded-xl border border-slate-100 p-3 text-left hover:bg-indigo-50 hover:border-indigo-100 transition cursor-pointer group">
+                            <span className="text-2xl">{(d as any).icon || '📄'}</span>
+                            <div className="min-w-0">
+                              <p className="text-sm font-semibold text-slate-800 truncate">{d.title}</p>
+                              <p className="text-[10px] text-slate-400">{new Date(d.updatedAt).toLocaleDateString()}</p>
                             </div>
-                            <div className="mt-4 flex gap-2 border-t border-slate-100 pt-3">
-                              <button
-                                onClick={() => setActiveDocument(doc)}
-                                className="flex-1 rounded-lg bg-indigo-50 py-1.5 text-center text-xs font-semibold text-indigo-600 hover:bg-indigo-100 transition cursor-pointer"
-                              >
-                                Edit Live
-                              </button>
-                              <button
-                                onClick={() => handleDeleteDocument(doc._id)}
-                                className="rounded-lg border border-slate-200 px-2 py-1.5 text-center text-xs text-slate-500 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-100 transition cursor-pointer"
-                              >
-                                Delete
-                              </button>
-                            </div>
-                          </div>
+                          </button>
                         ))}
                       </div>
-                    ) : (
-                      <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/50 p-10 text-center text-slate-400">
-                        <p className="text-sm font-semibold text-slate-700">No collaborative documents yet</p>
-                        <p className="mt-1.5 text-xs">Create your first live document and invite team members to write together.</p>
-                      </div>
-                    )}
-                  </div>
+                    </div>
+                  )}
                 </div>
               )}
 
-              {activeView === 'settings' && (
-                <div className="space-y-6 max-w-3xl">
-                  {/* Preferences settings panel */}
-                  <div className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm">
-                    <h3 className="text-lg font-bold text-slate-800">Workspace Settings</h3>
-                    <p className="text-xs text-slate-500 mt-1">Manage details for "{activeWorkspace.name}".</p>
-                    
-                    <div className="mt-6 space-y-4">
-                      <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
-                        <span className="block text-xs font-bold uppercase tracking-wider text-slate-400">Invite Code</span>
-                        <div className="mt-2 flex items-center justify-between">
-                          <span className="font-mono text-indigo-600 font-bold text-sm bg-white border border-slate-100 rounded-lg px-3 py-1.5">
-                            {activeWorkspace.inviteCode}
-                          </span>
-                          <button
-                            onClick={() => {
-                              navigator.clipboard.writeText(activeWorkspace.inviteCode);
-                              showToast('Copied', 'Invite code copied to clipboard!', 'success');
-                            }}
-                            className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 cursor-pointer"
-                          >
-                            Copy Code
+              {/* DOCUMENTS */}
+              {view === 'documents' && (
+                <div className="space-y-4 max-w-5xl">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h2 className="text-xl font-bold text-slate-800">Documents</h2>
+                      <p className="text-xs text-slate-500 mt-0.5">Collaborative markdown editing with real-time sync</p>
+                    </div>
+                    <button onClick={() => setModal('create-document')}
+                      className="flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-md shadow-indigo-600/20 hover:bg-indigo-700 transition cursor-pointer">
+                      + New Document
+                    </button>
+                  </div>
+
+                  {documents.length > 0 ? (
+                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                      {documents.map((d: Document) => (
+                        <div key={d._id} className="group flex flex-col rounded-2xl border border-slate-100 bg-white p-5 shadow-sm hover:shadow-md hover:border-indigo-100 transition">
+                          <div className="mb-3 flex items-start justify-between">
+                            <span className="text-3xl">{(d as any).icon || '📄'}</span>
+                            <button onClick={() => handleDeleteDoc(d._id)}
+                              className="opacity-0 group-hover:opacity-100 rounded-lg border border-slate-200 px-2 py-1 text-[10px] text-slate-400 hover:text-rose-600 hover:border-rose-100 hover:bg-rose-50 transition cursor-pointer">
+                              Delete
+                            </button>
+                          </div>
+                          <h3 className="font-bold text-slate-800 mb-1 truncate">{d.title}</h3>
+                          <p className="text-xs text-slate-400 mb-1">By {d.createdBy?.name || 'Unknown'}</p>
+                          <p className="text-xs text-slate-400 mb-4">Updated {new Date(d.updatedAt).toLocaleDateString()}</p>
+                          <button onClick={() => setActiveDoc(d)}
+                            className="mt-auto w-full rounded-xl bg-indigo-50 py-2 text-sm font-semibold text-indigo-600 hover:bg-indigo-100 transition cursor-pointer">
+                            Open & Edit →
                           </button>
                         </div>
-                      </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-white p-16 text-center">
+                      <div className="text-5xl mb-4">📄</div>
+                      <p className="text-slate-700 font-semibold mb-2">No documents yet</p>
+                      <p className="text-slate-400 text-sm mb-6">Create your first collaborative document with real-time co-editing</p>
+                      <button onClick={() => setModal('create-document')}
+                        className="rounded-xl bg-indigo-600 px-6 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 transition cursor-pointer">
+                        Create First Document
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
 
-                      <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
-                        <h4 className="font-semibold text-slate-800 text-sm">Leave Workspace</h4>
-                        <p className="text-xs text-slate-400 mt-1">If you leave, you will need a new invite code to reconnect with this workspace.</p>
-                        <button
-                          onClick={async () => {
-                            if (!confirm('Are you sure you want to leave this workspace?')) return;
-                            try {
-                              await workspaceService.leaveWorkspace(activeWorkspace._id);
-                              showToast('Left Workspace', 'You have left the workspace.', 'success');
-                              queryClient.invalidateQueries({ queryKey: ['workspaces'] });
-                              setActiveWorkspace(null);
-                              setActiveChannel(null);
-                            } catch (err: any) {
-                              showToast('Error', err.response?.data?.message || 'Failed to leave workspace', 'error');
-                            }
-                          }}
-                          className="mt-3 rounded-lg border border-rose-200 bg-white px-3 py-1.5 text-xs font-semibold text-rose-600 hover:bg-rose-50 cursor-pointer"
-                        >
-                          Leave Workspace
+              {/* SETTINGS */}
+              {view === 'settings' && (
+                <div className="space-y-4 max-w-2xl">
+                  <h2 className="text-xl font-bold text-slate-800">Workspace Settings</h2>
+                  <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm space-y-4">
+                    <div>
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-400">Workspace Name</label>
+                      <p className="mt-1 font-semibold text-slate-800">{activeWs.name}</p>
+                    </div>
+                    <div>
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-400">Owner</label>
+                      <p className="mt-1 font-semibold text-slate-800">{activeWs.owner.name}</p>
+                    </div>
+                    <div>
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-400">Invite Code</label>
+                      <div className="mt-2 flex items-center gap-3">
+                        <code className="flex-1 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 font-mono text-indigo-600 font-bold text-sm">
+                          {activeWs.inviteCode}
+                        </code>
+                        <button onClick={() => { navigator.clipboard.writeText(activeWs.inviteCode); showToast('Copied!', 'Invite code copied.', 'success'); }}
+                          className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition cursor-pointer">
+                          Copy
                         </button>
                       </div>
+                    </div>
+                    <div className="border-t border-slate-100 pt-4">
+                      <label className="text-xs font-bold uppercase tracking-wider text-rose-400">Danger Zone</label>
+                      <button onClick={async () => {
+                        if (!confirm('Leave this workspace?')) return;
+                        try {
+                          await workspaceService.leaveWorkspace(activeWs._id);
+                          showToast('Left', 'You left the workspace.', 'success');
+                          qc.invalidateQueries({ queryKey: ['workspaces'] });
+                          setActiveWs(null); setActiveChannel(null);
+                        } catch (e: any) { showToast('Error', e.response?.data?.message || 'Failed', 'error'); }
+                      }} className="mt-2 block rounded-xl border border-rose-200 px-4 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-50 transition cursor-pointer">
+                        Leave Workspace
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -460,31 +409,24 @@ const DashboardPage = () => {
             </div>
           </>
         ) : (
-          /* Empty Workspace State Dashboard */
-          <div className="flex flex-1 items-center justify-center p-6 bg-slate-50">
-            <div className="w-full max-w-xl text-center">
-              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-3xl bg-indigo-100 text-indigo-600 font-bold text-xl shadow-xs">
-                +
-              </div>
-              <h2 className="mt-6 text-xl font-bold text-slate-800">Welcome to CollabHub</h2>
-              <p className="mt-2 text-sm leading-6 text-slate-500">
-                You are not currently active in a workspace. Start collaborating by creating a new workspace, or input an invite code to join an existing team.
-              </p>
-              
-              <div className="mt-8 grid gap-4 sm:grid-cols-2">
-                <button
-                  onClick={() => setActiveModal('create-workspace')}
-                  className="flex flex-col items-center rounded-2xl border border-slate-200 bg-white p-5 text-center shadow-xs hover:shadow-md hover:border-indigo-200 transition cursor-pointer"
-                >
-                  <span className="text-indigo-600 font-bold text-base mb-1">Create Workspace</span>
-                  <span className="text-xs text-slate-400">Scaffold a brand new team control center</span>
+          /* Empty state */
+          <div className="flex flex-1 items-center justify-center p-6">
+            <div className="w-full max-w-lg text-center">
+              <div className="mx-auto mb-6 text-6xl">🚀</div>
+              <h2 className="text-2xl font-bold text-slate-800 mb-2">Welcome to CollabHub</h2>
+              <p className="text-slate-500 text-sm mb-8">Create a workspace to get started, or join one with an invite code.</p>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <button onClick={() => setModal('create-workspace')}
+                  className="flex flex-col items-center gap-2 rounded-2xl border-2 border-indigo-100 bg-white p-6 hover:border-indigo-400 hover:bg-indigo-50 transition cursor-pointer group">
+                  <span className="text-3xl group-hover:scale-110 transition-transform">✨</span>
+                  <span className="font-bold text-slate-800">Create Workspace</span>
+                  <span className="text-xs text-slate-400">Start fresh with a new team</span>
                 </button>
-                <button
-                  onClick={() => setActiveModal('join-workspace')}
-                  className="flex flex-col items-center rounded-2xl border border-slate-200 bg-white p-5 text-center shadow-xs hover:shadow-md hover:border-indigo-200 transition cursor-pointer"
-                >
-                  <span className="text-indigo-600 font-bold text-base mb-1">Join with Invite Code</span>
-                  <span className="text-xs text-slate-400">Join an existing workspace created by others</span>
+                <button onClick={() => setModal('join-workspace')}
+                  className="flex flex-col items-center gap-2 rounded-2xl border-2 border-slate-100 bg-white p-6 hover:border-indigo-400 hover:bg-indigo-50 transition cursor-pointer group">
+                  <span className="text-3xl group-hover:scale-110 transition-transform">🔗</span>
+                  <span className="font-bold text-slate-800">Join Workspace</span>
+                  <span className="text-xs text-slate-400">Use an invite code</span>
                 </button>
               </div>
             </div>
@@ -492,213 +434,105 @@ const DashboardPage = () => {
         )}
       </main>
 
-      {/* --- Dialog Modals --- */}
+      {/* ===== MODALS ===== */}
+      {modal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4" onClick={(e) => { if (e.target === e.currentTarget) closeModal(); }}>
+          <div className="bg-white rounded-3xl border border-slate-100 p-7 shadow-2xl w-full max-w-sm animate-in fade-in-0 zoom-in-95">
 
-      {/* Create Workspace Modal */}
-      {activeModal === 'create-workspace' && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl border border-slate-100 p-6 shadow-2xl max-w-sm w-full">
-            <h3 className="text-lg font-bold text-slate-800">Create new workspace</h3>
-            <p className="text-xs text-slate-400 mt-1">Start a private workspace for your team.</p>
-            <form onSubmit={handleCreateWorkspace} className="mt-4 space-y-4">
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-400">
-                Workspace Name
-                <input
-                  type="text"
-                  required
-                  placeholder="Acme Corp, Sprint 1..."
-                  value={wsName}
-                  onChange={(e) => setWsName(e.target.value)}
-                  className="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-xs text-slate-900 outline-none focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10"
-                />
-              </label>
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-400">
-                Description (Optional)
-                <textarea
-                  placeholder="What is this workspace for?"
-                  value={wsDesc}
-                  onChange={(e) => setWsDesc(e.target.value)}
-                  rows={2}
-                  className="mt-2 w-full resize-none rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-xs text-slate-900 outline-none focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10"
-                />
-              </label>
-              <div className="mt-6 flex justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setActiveModal(null)}
-                  className="rounded-xl border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-500 hover:bg-slate-50 transition cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="rounded-xl bg-indigo-600 px-4 py-2 text-xs font-semibold text-white hover:bg-indigo-700 transition cursor-pointer shadow-md shadow-indigo-600/10"
-                >
-                  Create
-                </button>
+            {modal === 'create-workspace' && (
+              <form onSubmit={handleCreateWs}>
+                <h3 className="text-lg font-bold text-slate-800 mb-1">Create Workspace</h3>
+                <p className="text-xs text-slate-400 mb-5">Build a hub for your team.</p>
+                <div className="space-y-3">
+                  <input required autoFocus placeholder="Workspace name" value={wsName} onChange={e=>setWsName(e.target.value)}
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 outline-none focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-500/10" />
+                  <textarea placeholder="Description (optional)" value={wsDesc} onChange={e=>setWsDesc(e.target.value)} rows={2}
+                    className="w-full resize-none rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 outline-none focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-500/10" />
+                </div>
+                <div className="mt-5 flex justify-end gap-2">
+                  <button type="button" onClick={closeModal} className="rounded-xl border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-500 hover:bg-slate-50 cursor-pointer">Cancel</button>
+                  <button type="submit" className="rounded-xl bg-indigo-600 px-5 py-2 text-xs font-semibold text-white hover:bg-indigo-700 cursor-pointer shadow-md shadow-indigo-600/20">Create</button>
+                </div>
+              </form>
+            )}
+
+            {modal === 'join-workspace' && (
+              <form onSubmit={handleJoinWs}>
+                <h3 className="text-lg font-bold text-slate-800 mb-1">Join Workspace</h3>
+                <p className="text-xs text-slate-400 mb-5">Enter the invite code from your team admin.</p>
+                <input required autoFocus placeholder="Invite code e.g. AB12CD" value={inviteCode} onChange={e=>setInviteCode(e.target.value.toUpperCase())}
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-mono text-slate-900 outline-none focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 tracking-widest" />
+                <div className="mt-5 flex justify-end gap-2">
+                  <button type="button" onClick={closeModal} className="rounded-xl border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-500 hover:bg-slate-50 cursor-pointer">Cancel</button>
+                  <button type="submit" className="rounded-xl bg-indigo-600 px-5 py-2 text-xs font-semibold text-white hover:bg-indigo-700 cursor-pointer shadow-md shadow-indigo-600/20">Join</button>
+                </div>
+              </form>
+            )}
+
+            {modal === 'create-channel' && (
+              <form onSubmit={handleCreateCh}>
+                <h3 className="text-lg font-bold text-slate-800 mb-1">New Channel</h3>
+                <p className="text-xs text-slate-400 mb-5">Channels are where team conversations happen.</p>
+                <div className="space-y-3">
+                  <div className="flex items-center rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 focus-within:border-indigo-500 focus-within:bg-white focus-within:ring-4 focus-within:ring-indigo-500/10">
+                    <span className="text-slate-400 font-bold mr-2">#</span>
+                    <input required autoFocus placeholder="channel-name" value={chName} onChange={e=>setChName(e.target.value.toLowerCase().replace(/\s+/g,'-'))}
+                      className="flex-1 bg-transparent text-sm text-slate-900 outline-none" />
+                  </div>
+                  <textarea placeholder="What's this channel for? (optional)" value={chDesc} onChange={e=>setChDesc(e.target.value)} rows={2}
+                    className="w-full resize-none rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 outline-none focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-500/10" />
+                </div>
+                <div className="mt-5 flex justify-end gap-2">
+                  <button type="button" onClick={closeModal} className="rounded-xl border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-500 hover:bg-slate-50 cursor-pointer">Cancel</button>
+                  <button type="submit" className="rounded-xl bg-indigo-600 px-5 py-2 text-xs font-semibold text-white hover:bg-indigo-700 cursor-pointer shadow-md shadow-indigo-600/20">Create Channel</button>
+                </div>
+              </form>
+            )}
+
+            {modal === 'invite' && activeWs && (
+              <div>
+                <h3 className="text-lg font-bold text-slate-800 mb-1">Invite Members</h3>
+                <p className="text-xs text-slate-400 mb-5">Share this code to invite people to "{activeWs.name}".</p>
+                <div className="rounded-2xl bg-indigo-50 border border-indigo-100 p-5 text-center mb-5">
+                  <p className="text-xs text-indigo-500 font-semibold uppercase tracking-widest mb-2">Invite Code</p>
+                  <p className="text-3xl font-bold text-indigo-600 font-mono tracking-widest">{activeWs.inviteCode}</p>
+                </div>
+                <div className="flex gap-2">
+                  <button onClick={closeModal} className="flex-1 rounded-xl border border-slate-200 py-2 text-xs font-semibold text-slate-500 hover:bg-slate-50 cursor-pointer">Close</button>
+                  <button onClick={() => { navigator.clipboard.writeText(activeWs.inviteCode); showToast('Copied!', 'Code copied to clipboard.', 'success'); closeModal(); }}
+                    className="flex-1 rounded-xl bg-indigo-600 py-2 text-xs font-semibold text-white hover:bg-indigo-700 cursor-pointer">Copy Code</button>
+                </div>
               </div>
-            </form>
-          </div>
-        </div>
-      )}
+            )}
 
-      {/* Join Workspace Modal */}
-      {activeModal === 'join-workspace' && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl border border-slate-100 p-6 shadow-2xl max-w-sm w-full">
-            <h3 className="text-lg font-bold text-slate-800">Join a workspace</h3>
-            <p className="text-xs text-slate-400 mt-1">Input the code provided by your workspace admin.</p>
-            <form onSubmit={handleJoinWorkspace} className="mt-4 space-y-4">
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-400">
-                Invite Code
-                <input
-                  type="text"
-                  required
-                  placeholder="HEX-CODE..."
-                  value={inviteCode}
-                  onChange={(e) => setInviteCode(e.target.value)}
-                  className="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-xs text-slate-900 outline-none focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 font-mono"
-                />
-              </label>
-              <div className="mt-6 flex justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setActiveModal(null)}
-                  className="rounded-xl border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-500 hover:bg-slate-50 transition cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="rounded-xl bg-indigo-600 px-4 py-2 text-xs font-semibold text-white hover:bg-indigo-700 transition cursor-pointer shadow-md shadow-indigo-600/10"
-                >
-                  Join Workspace
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+            {modal === 'create-document' && (
+              <form onSubmit={handleCreateDoc}>
+                <h3 className="text-lg font-bold text-slate-800 mb-1">New Document</h3>
+                <p className="text-xs text-slate-400 mb-5">Start a collaborative markdown document.</p>
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 block">Icon</label>
+                    <div className="flex flex-wrap gap-1.5">
+                      {DOC_ICONS.map(ic => (
+                        <button key={ic} type="button" onClick={() => setDocIcon(ic)}
+                          className={`text-xl rounded-lg p-1.5 cursor-pointer transition ${docIcon===ic ? 'bg-indigo-100 ring-2 ring-indigo-500' : 'hover:bg-slate-100'}`}>
+                          {ic}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <input required autoFocus placeholder="Document title" value={docTitle} onChange={e=>setDocTitle(e.target.value)}
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 outline-none focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-500/10" />
+                </div>
+                <div className="mt-5 flex justify-end gap-2">
+                  <button type="button" onClick={closeModal} className="rounded-xl border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-500 hover:bg-slate-50 cursor-pointer">Cancel</button>
+                  <button type="submit" className="rounded-xl bg-indigo-600 px-5 py-2 text-xs font-semibold text-white hover:bg-indigo-700 cursor-pointer shadow-md shadow-indigo-600/20">
+                    {docIcon} Create
+                  </button>
+                </div>
+              </form>
+            )}
 
-      {/* Create Channel Modal */}
-      {activeModal === 'create-channel' && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl border border-slate-100 p-6 shadow-2xl max-w-sm w-full">
-            <h3 className="text-lg font-bold text-slate-800">Create new channel</h3>
-            <p className="text-xs text-slate-400 mt-1">Channels are where conversations happen.</p>
-            <form onSubmit={handleCreateChannel} className="mt-4 space-y-4">
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-400">
-                Channel Name
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. general, frontend-dev"
-                  value={channelName}
-                  onChange={(e) => setChannelName(e.target.value)}
-                  className="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-xs text-slate-900 outline-none focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10"
-                />
-              </label>
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-400">
-                Description (Optional)
-                <textarea
-                  placeholder="What should people chat about in this channel?"
-                  value={channelDesc}
-                  onChange={(e) => setChannelDesc(e.target.value)}
-                  rows={2}
-                  className="mt-2 w-full resize-none rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-xs text-slate-900 outline-none focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10"
-                />
-              </label>
-              <div className="mt-6 flex justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setActiveModal(null)}
-                  className="rounded-xl border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-500 hover:bg-slate-50 transition cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="rounded-xl bg-indigo-600 px-4 py-2 text-xs font-semibold text-white hover:bg-indigo-700 transition cursor-pointer shadow-md shadow-indigo-600/10"
-                >
-                  Create Channel
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Invite Code Modal */}
-      {activeModal === 'invite-members' && activeWorkspace && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl border border-slate-100 p-6 shadow-2xl max-w-sm w-full">
-            <h3 className="text-lg font-bold text-slate-800">Invite team members</h3>
-            <p className="text-xs text-slate-400 mt-1">Share this code with teammates so they can join "{activeWorkspace.name}".</p>
-            
-            <div className="mt-5 rounded-2xl border border-slate-100 bg-slate-50 p-4 text-center">
-              <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-400">Active Invite Code</span>
-              <span className="mt-2 block font-mono text-2xl font-bold text-indigo-600 tracking-wider">
-                {activeWorkspace.inviteCode}
-              </span>
-            </div>
-
-            <div className="mt-6 flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => setActiveModal(null)}
-                className="rounded-xl border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-500 hover:bg-slate-50 transition cursor-pointer"
-              >
-                Close
-              </button>
-              <button
-                onClick={() => {
-                  navigator.clipboard.writeText(activeWorkspace.inviteCode);
-                  showToast('Copied', 'Invite code copied to clipboard!', 'success');
-                  setActiveModal(null);
-                }}
-                className="rounded-xl bg-indigo-600 px-4 py-2 text-xs font-semibold text-white hover:bg-indigo-700 transition cursor-pointer shadow-md shadow-indigo-600/10"
-              >
-                Copy to Clipboard
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Create Document Modal */}
-      {activeModal === 'create-document' && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl border border-slate-100 p-6 shadow-2xl max-w-sm w-full">
-            <h3 className="text-lg font-bold text-slate-800">Create co-editing document</h3>
-            <p className="text-xs text-slate-400 mt-1">Scaffold a collaborative markdown editor.</p>
-            <form onSubmit={handleCreateDocument} className="mt-4 space-y-4">
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-400">
-                Document Title
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Design Roadmap, Notes..."
-                  value={docTitle}
-                  onChange={(e) => setDocTitle(e.target.value)}
-                  className="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-xs text-slate-900 outline-none focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10"
-                />
-              </label>
-              <div className="mt-6 flex justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setActiveModal(null)}
-                  className="rounded-xl border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-500 hover:bg-slate-50 transition cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="rounded-xl bg-indigo-600 px-4 py-2 text-xs font-semibold text-white hover:bg-indigo-700 transition cursor-pointer shadow-md shadow-indigo-600/10"
-                >
-                  Create Document
-                </button>
-              </div>
-            </form>
           </div>
         </div>
       )}

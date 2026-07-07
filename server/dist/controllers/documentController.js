@@ -10,7 +10,7 @@ const createDocument = async (req, res) => {
         return res.status(401).json({ success: false, message: 'Unauthorized' });
     }
     const workspace = await Workspace_1.Workspace.findById(workspaceId);
-    if (!workspace || !workspace.members.includes(userId)) {
+    if (!workspace || !workspace.members.some((m) => m.toString() === userId)) {
         return res.status(403).json({ success: false, message: 'Forbidden' });
     }
     const document = await Document_1.Document.create({
@@ -45,7 +45,8 @@ const updateDocument = async (req, res) => {
     if (!document) {
         return res.status(404).json({ success: false, message: 'Document not found' });
     }
-    if (document.createdBy.toString() !== userId) {
+    const workspace = await Workspace_1.Workspace.findById(document.workspaceId);
+    if (!workspace || !workspace.members.some((m) => m.toString() === userId)) {
         return res.status(403).json({ success: false, message: 'Forbidden' });
     }
     document.title = title || document.title;
@@ -61,7 +62,10 @@ const deleteDocument = async (req, res) => {
     if (!document) {
         return res.status(404).json({ success: false, message: 'Document not found' });
     }
-    if (document.createdBy.toString() !== userId) {
+    const isCreator = document.createdBy.toString() === userId;
+    const ws = await Workspace_1.Workspace.findById(document.workspaceId);
+    const isOwner = ws?.owner.toString() === userId;
+    if (!isCreator && !isOwner) {
         return res.status(403).json({ success: false, message: 'Forbidden' });
     }
     await Document_1.Document.deleteOne({ _id: id });

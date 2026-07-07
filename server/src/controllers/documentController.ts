@@ -11,7 +11,7 @@ export const createDocument = async (req: Request, res: Response) => {
   }
 
   const workspace = await Workspace.findById(workspaceId);
-  if (!workspace || !workspace.members.includes(userId)) {
+  if (!workspace || !workspace.members.some((m) => m.toString() === userId)) {
     return res.status(403).json({ success: false, message: 'Forbidden' });
   }
 
@@ -53,7 +53,8 @@ export const updateDocument = async (req: Request, res: Response) => {
     return res.status(404).json({ success: false, message: 'Document not found' });
   }
 
-  if (document.createdBy.toString() !== userId) {
+  const workspace = await Workspace.findById(document.workspaceId);
+  if (!workspace || !workspace.members.some((m) => m.toString() === userId)) {
     return res.status(403).json({ success: false, message: 'Forbidden' });
   }
 
@@ -73,7 +74,10 @@ export const deleteDocument = async (req: Request, res: Response) => {
     return res.status(404).json({ success: false, message: 'Document not found' });
   }
 
-  if (document.createdBy.toString() !== userId) {
+  const isCreator = document.createdBy.toString() === userId;
+  const ws = await Workspace.findById(document.workspaceId);
+  const isOwner = ws?.owner.toString() === userId;
+  if (!isCreator && !isOwner) {
     return res.status(403).json({ success: false, message: 'Forbidden' });
   }
 
