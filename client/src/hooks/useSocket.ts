@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
+import { Message } from '../types';
 
 // --- Singleton socket instance ---
 // We create ONE socket for the whole app lifetime, not per-component.
@@ -69,7 +70,7 @@ export const useSocket = () => {
 };
 
 export const useChatEvents = (socket: Socket | null, channelId: string) => {
-  const [messages, setMessages] = useState<any[]>([]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [typingUsers, setTypingUsers] = useState<TypingUser[]>([]);
 
   useEffect(() => {
@@ -79,11 +80,11 @@ export const useChatEvents = (socket: Socket | null, channelId: string) => {
     setTypingUsers([]);
     socket.emit('join-channel', channelId);
 
-    const handleHistory = (history: any[]) => {
+    const handleHistory = (history: Message[]) => {
       setMessages(history);
     };
 
-    const handleIncomingMessage = (message: any) => {
+    const handleIncomingMessage = (message: Message) => {
       setMessages((prev) => [...prev, message]);
     };
 

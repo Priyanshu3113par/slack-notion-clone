@@ -15,7 +15,6 @@ const RegisterPage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Password Validation
   const hasLength = password.length >= 8 && password.length <= 15;
   const hasUpper = /[A-Z]/.test(password);
   const hasNumber = /\d/.test(password);
@@ -25,7 +24,7 @@ const RegisterPage = () => {
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError('');
-    
+
     if (!isPasswordValid) {
       setError('Please fulfill all password requirements before registering.');
       return;
@@ -59,89 +58,84 @@ const RegisterPage = () => {
       actionLink="/login"
       actionLabel="Sign in"
     >
-      <form className="space-y-5" onSubmit={handleSubmit}>
-        <div className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm">
-          <div className="grid gap-4">
-            <label className="block text-sm font-medium text-slate-700">
-              Full name
-              <input
-                id="name"
-                type="text"
-                required
-                placeholder="Jane Doe"
-                value={name}
-                onChange={(event) => setName(event.target.value)}
-                className="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-500/10"
-              />
-            </label>
-            <label className="block text-sm font-medium text-slate-700">
-              Work email
-              <input
-                id="email"
-                type="email"
-                required
-                placeholder="jane@example.com"
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                className="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-500/10"
-              />
-            </label>
-            <label className="block text-sm font-medium text-slate-700">
-              Password
-              <input
-                id="password"
-                type={showPassword ? 'text' : 'password'}
-                required
-                placeholder="••••••••"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                className="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-500/10"
-                autoComplete="new-password"
-              />
-            </label>
-            
-            {/* Password Strength UI */}
-            <div className="mt-2 rounded-xl bg-slate-50 border border-slate-100 p-4">
-              <p className="text-xs font-semibold text-slate-700 mb-2">Password Requirements:</p>
-              <ul className="text-xs space-y-1">
-                <li className={`flex items-center gap-2 ${hasLength ? 'text-emerald-600' : 'text-slate-500'}`}>
-                  <span className="text-sm">{hasLength ? '✓' : '○'}</span> 8-15 characters
-                </li>
-                <li className={`flex items-center gap-2 ${hasUpper ? 'text-emerald-600' : 'text-slate-500'}`}>
-                  <span className="text-sm">{hasUpper ? '✓' : '○'}</span> 1 Capital letter
-                </li>
-                <li className={`flex items-center gap-2 ${hasNumber ? 'text-emerald-600' : 'text-slate-500'}`}>
-                  <span className="text-sm">{hasNumber ? '✓' : '○'}</span> 1 Number
-                </li>
-                <li className={`flex items-center gap-2 ${hasSpecial ? 'text-emerald-600' : 'text-slate-500'}`}>
-                  <span className="text-sm">{hasSpecial ? '✓' : '○'}</span> 1 Special character
-                </li>
-              </ul>
-            </div>
-
-            <div className="mt-1 flex items-center justify-between gap-3 text-xs text-slate-500">
-              <button
-                type="button"
-                onClick={() => setShowPassword((current) => !current)}
-                className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 font-medium transition hover:border-slate-300 hover:bg-slate-100 text-slate-600 cursor-pointer"
-              >
-                {showPassword ? 'Hide password' : 'Show password'}
-              </button>
-            </div>
-          </div>
-          {error && <div className="mt-4 rounded-xl bg-rose-50 border border-rose-100 px-4 py-3 text-sm text-rose-600">{error}</div>}
-          <button
-            type="submit"
-            disabled={loading || (!isPasswordValid && password.length > 0)}
-            className="mt-5 w-full rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white shadow-md shadow-indigo-600/10 transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
-          >
-            {loading ? 'Creating account…' : 'Get Started'}
-          </button>
+      <form onSubmit={handleSubmit}>
+        <div className="mb-6">
+          <p className="text-xs font-black uppercase tracking-[0.22em] text-slate-400">New workspace</p>
+          <h2 className="mt-2 text-2xl font-black text-slate-950">Create your account</h2>
         </div>
+
+        <div className="grid gap-4">
+          <label className="block text-sm font-bold text-slate-700">
+            Full name
+            <input
+              id="name"
+              type="text"
+              required
+              placeholder="Jane Doe"
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+              className="mt-2 w-full rounded-md border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-sky-400 focus:bg-white"
+            />
+          </label>
+
+          <label className="block text-sm font-bold text-slate-700">
+            Work email
+            <input
+              id="email"
+              type="email"
+              required
+              placeholder="jane@example.com"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              className="mt-2 w-full rounded-md border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-sky-400 focus:bg-white"
+            />
+          </label>
+
+          <label className="block text-sm font-bold text-slate-700">
+            Password
+            <input
+              id="password"
+              type={showPassword ? 'text' : 'password'}
+              required
+              placeholder="Create a strong password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              className="mt-2 w-full rounded-md border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-sky-400 focus:bg-white"
+              autoComplete="new-password"
+            />
+          </label>
+        </div>
+
+        <div className="mt-4 rounded-md border border-slate-200 bg-slate-50 p-4">
+          <p className="mb-2 text-xs font-black uppercase tracking-[0.18em] text-slate-500">Password requirements</p>
+          <ul className="space-y-1 text-xs">
+            <li className={`flex items-center gap-2 ${hasLength ? 'text-emerald-600' : 'text-slate-500'}`}><span>{hasLength ? 'OK' : '--'}</span> 8-15 characters</li>
+            <li className={`flex items-center gap-2 ${hasUpper ? 'text-emerald-600' : 'text-slate-500'}`}><span>{hasUpper ? 'OK' : '--'}</span> 1 capital letter</li>
+            <li className={`flex items-center gap-2 ${hasNumber ? 'text-emerald-600' : 'text-slate-500'}`}><span>{hasNumber ? 'OK' : '--'}</span> 1 number</li>
+            <li className={`flex items-center gap-2 ${hasSpecial ? 'text-emerald-600' : 'text-slate-500'}`}><span>{hasSpecial ? 'OK' : '--'}</span> 1 special character</li>
+          </ul>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setShowPassword((current) => !current)}
+          className="mt-3 rounded-md border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-600 transition hover:border-slate-300 hover:bg-slate-100"
+        >
+          {showPassword ? 'Hide password' : 'Show password'}
+        </button>
+
+        {error && <div className="mt-4 rounded-md border border-rose-100 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-600">{error}</div>}
+
+        <button
+          type="submit"
+          disabled={loading || (!isPasswordValid && password.length > 0)}
+          className="mt-5 w-full cursor-pointer rounded-md bg-slate-950 px-5 py-3 text-sm font-black text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {loading ? 'Creating account...' : 'Create account'}
+        </button>
       </form>
     </AuthPageShell>
   );
 };
 
 export default RegisterPage;
-

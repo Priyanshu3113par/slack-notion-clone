@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { Workspace } from '../models/Workspace';
 import crypto from 'crypto';
+import { isWorkspaceMember } from '../utils/access';
 
 export const createWorkspace = async (req: Request, res: Response) => {
   const { name, description } = req.body;
@@ -53,7 +54,7 @@ export const getWorkspace = async (req: Request, res: Response) => {
     return res.status(404).json({ success: false, message: 'Workspace not found' });
   }
 
-  if (!userId || !workspace.members.some((member) => member.toString() === userId)) {
+  if (!isWorkspaceMember(workspace.members, userId)) {
     return res.status(403).json({ success: false, message: 'Forbidden' });
   }
 
@@ -111,7 +112,7 @@ export const joinWorkspace = async (req: Request, res: Response) => {
     return res.status(404).json({ success: false, message: 'Invalid invite code' });
   }
 
-  if (workspace.members.includes(userId)) {
+  if (isWorkspaceMember(workspace.members, userId)) {
     return res.status(400).json({ success: false, message: 'Already a member' });
   }
 

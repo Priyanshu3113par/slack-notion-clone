@@ -43,16 +43,25 @@ export const ToastProvider = ({ children }: { children: ReactNode }) => {
         {toasts.map((toast) => (
           <div
             key={toast.id}
-            className={`rounded-2xl border px-4 py-3 shadow-2xl backdrop-blur ${
+            className={`rounded-lg border bg-white px-4 py-3 text-slate-950 shadow-xl ${
               toast.type === 'success'
-                ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-200'
+                ? 'border-emerald-200'
                 : toast.type === 'error'
-                  ? 'border-rose-500/30 bg-rose-500/10 text-rose-200'
-                  : 'border-sky-500/30 bg-slate-900/90 text-slate-100'
+                  ? 'border-rose-200'
+                  : 'border-sky-200'
             }`}
           >
-            <p className="text-sm font-semibold">{toast.title}</p>
-            <p className="mt-1 text-sm opacity-90">{toast.message}</p>
+            <div className="flex gap-3">
+              <span
+                className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full ${
+                  toast.type === 'success' ? 'bg-emerald-500' : toast.type === 'error' ? 'bg-rose-500' : 'bg-sky-500'
+                }`}
+              />
+              <div>
+                <p className="text-sm font-bold">{toast.title}</p>
+                <p className="mt-1 text-sm text-slate-500">{toast.message}</p>
+              </div>
+            </div>
           </div>
         ))}
       </div>

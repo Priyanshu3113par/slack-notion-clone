@@ -2,42 +2,46 @@ import { Link } from 'react-router-dom';
 
 const MarketingPageShell = ({ title, subtitle }: { title: string; subtitle: string }) => {
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(99,102,241,0.16),_transparent_24%),radial-gradient(circle_at_80%_10%,_rgba(56,189,248,0.12),_transparent_18%),linear-gradient(180deg,_#f8fafc_0%,_#eef2ff_30%,_#f8fafc_100%)] text-slate-950 flex flex-col">
-      <div className="relative mx-auto w-full max-w-7xl px-6 py-8 sm:px-8 lg:px-10 flex-1 flex flex-col">
-        <nav className="flex items-center justify-between gap-4 rounded-full border border-slate-200 bg-white/90 px-5 py-4 shadow-lg shadow-slate-200/50 backdrop-blur-xl">
+    <div className="flex min-h-screen flex-col bg-[#f6f8fb] text-slate-950">
+      <header className="border-b border-slate-200 bg-white">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-6 py-4 lg:px-8">
           <Link to="/" className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-3xl bg-gradient-to-br from-indigo-600 to-cyan-500 text-lg font-bold text-white">D</div>
-            <div>
-              <p className="text-sm font-semibold text-slate-950">CollabHub</p>
-              <p className="text-xs text-slate-500">Workspace platform</p>
-            </div>
+            <span className="flex h-10 w-10 items-center justify-center rounded-md bg-slate-950 text-sm font-black tracking-[0.18em] text-white">CH</span>
+            <span>
+              <span className="block text-sm font-black text-slate-950">CollabHub</span>
+              <span className="block text-xs font-semibold text-slate-500">Workspace platform</span>
+            </span>
           </Link>
-          <div className="flex items-center gap-3">
-            <Link to="/login" className="rounded-full px-4 py-2 text-sm font-medium text-slate-600 transition hover:text-slate-950">Log in</Link>
-            <Link
-              to="/register"
-              className="rounded-full bg-gradient-to-r from-indigo-600 via-sky-500 to-cyan-500 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-slate-300/40 transition hover:opacity-95"
-            >
-              Start free
+          <div className="flex items-center gap-2">
+            <Link to="/login" className="rounded-md border border-slate-200 px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50">Log in</Link>
+            <Link to="/register" className="rounded-md bg-slate-950 px-4 py-2 text-sm font-bold text-white hover:bg-slate-800">Start free</Link>
+          </div>
+        </div>
+      </header>
+
+      <main className="mx-auto flex w-full max-w-7xl flex-1 items-center px-6 py-16 lg:px-8">
+        <section className="grid w-full gap-8 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.24em] text-sky-700">Product area</p>
+            <h1 className="mt-5 text-5xl font-black leading-tight text-slate-950 sm:text-6xl">{title}</h1>
+            <p className="mt-5 max-w-2xl text-lg leading-8 text-slate-600">{subtitle}</p>
+            <Link to="/" className="mt-7 inline-flex rounded-md border border-slate-300 bg-white px-5 py-3 text-sm font-black text-slate-800 hover:bg-slate-50">
+              Back to home
             </Link>
           </div>
-        </nav>
 
-        <main className="flex-1 flex flex-col items-center justify-center text-center py-20">
-          <div className="inline-flex items-center gap-2 rounded-full bg-indigo-50 px-4 py-2 text-sm font-semibold text-indigo-700 shadow-sm mb-8">
-            <span className="h-2.5 w-2.5 rounded-full bg-indigo-500" />
-            Coming Soon
+          <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-xl">
+            <div className="grid gap-3 sm:grid-cols-2">
+              {['Workspaces', 'Channels', 'Documents', 'Realtime'].map((item) => (
+                <div key={item} className="rounded-md border border-slate-200 bg-slate-50 p-5">
+                  <p className="text-sm font-black text-slate-950">{item}</p>
+                  <p className="mt-2 text-sm leading-6 text-slate-600">Designed for fast-moving teams and production SaaS workflows.</p>
+                </div>
+              ))}
+            </div>
           </div>
-          <h1 className="text-5xl font-semibold tracking-tight text-slate-950 sm:text-7xl mb-6">{title}</h1>
-          <p className="max-w-2xl text-xl leading-9 text-slate-600 mb-10">{subtitle}</p>
-          <Link
-            to="/"
-            className="inline-flex items-center justify-center rounded-2xl bg-white border border-slate-200 px-6 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
-          >
-            ← Back to Home
-          </Link>
-        </main>
-      </div>
+        </section>
+      </main>
     </div>
   );
 };

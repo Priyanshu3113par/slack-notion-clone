@@ -45,52 +45,59 @@ const LoginPage = () => {
       actionLink="/register"
       actionLabel="Sign up"
     >
-      <form className="space-y-5" onSubmit={handleSubmit}>
-        <div className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm">
-          <label className="block text-sm font-medium text-slate-700 mb-4">
-            Email address
-            <input
-              id="email"
-              type="email"
-              required
-              placeholder="you@example.com"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              className="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-500/10"
-            />
-          </label>
-          <label className="block text-sm font-medium text-slate-700 mb-4">
-            Password
-            <input
-              id="password"
-              type={showPassword ? 'text' : 'password'}
-              required
-              placeholder="••••••••"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              className="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-500/10"
-              autoComplete="current-password"
-            />
-          </label>
-          <div className="mt-4 flex items-center justify-between gap-3 text-xs text-slate-500">
-            <button
-              type="button"
-              onClick={() => setShowPassword((current) => !current)}
-              className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 font-medium transition hover:border-slate-300 hover:bg-slate-100 text-slate-600"
-            >
-              {showPassword ? 'Hide password' : 'Show password'}
-            </button>
-            <span>Password is hidden by default</span>
-          </div>
-          {error && <div className="mt-4 rounded-xl bg-rose-50 border border-rose-100 px-4 py-3 text-sm text-rose-600">{error}</div>}
-          <button
-            type="submit"
-            disabled={loading}
-            className="mt-5 w-full rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white shadow-md shadow-indigo-600/10 transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
-          >
-            {loading ? 'Signing in…' : 'Sign In'}
-          </button>
+      <form onSubmit={handleSubmit}>
+        <div className="mb-6">
+          <p className="text-xs font-black uppercase tracking-[0.22em] text-slate-400">Welcome back</p>
+          <h2 className="mt-2 text-2xl font-black text-slate-950">Sign in to CollabHub</h2>
         </div>
+
+        <label className="mb-4 block text-sm font-bold text-slate-700">
+          Email address
+          <input
+            id="email"
+            type="email"
+            required
+            placeholder="you@example.com"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            className="mt-2 w-full rounded-md border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-sky-400 focus:bg-white"
+          />
+        </label>
+
+        <label className="mb-4 block text-sm font-bold text-slate-700">
+          Password
+          <input
+            id="password"
+            type={showPassword ? 'text' : 'password'}
+            required
+            placeholder="Enter your password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            className="mt-2 w-full rounded-md border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-sky-400 focus:bg-white"
+            autoComplete="current-password"
+          />
+        </label>
+
+        <div className="mt-4 flex items-center justify-between gap-3 text-xs text-slate-500">
+          <button
+            type="button"
+            onClick={() => setShowPassword((current) => !current)}
+            className="rounded-md border border-slate-200 bg-slate-50 px-3 py-1.5 font-bold text-slate-600 transition hover:border-slate-300 hover:bg-slate-100"
+          >
+            {showPassword ? 'Hide password' : 'Show password'}
+          </button>
+          <span>Password is hidden by default</span>
+        </div>
+
+        {error && <div className="mt-4 rounded-md border border-rose-100 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-600">{error}</div>}
+
+        <button
+          type="submit"
+          disabled={loading}
+          className="mt-5 w-full cursor-pointer rounded-md bg-slate-950 px-5 py-3 text-sm font-black text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {loading ? 'Signing in...' : 'Sign in'}
+        </button>
       </form>
     </AuthPageShell>
   );

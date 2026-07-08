@@ -38,9 +38,15 @@ const setupSocket = (server) => {
                 .limit(50)
                 .lean();
             socket.emit('channel-history', recentMessages.map((message) => ({
-                _id: message._id.toString(),
+                id: message._id.toString(),
                 channelId,
-                sender: message.senderId,
+                sender: {
+                    id: message.senderId._id?.toString()
+                        ?? message.senderId.id
+                        ?? '',
+                    name: message.senderId.name ?? 'User',
+                    avatar: message.senderId.avatar ?? ''
+                },
                 message: message.message,
                 createdAt: message.createdAt
             })));
@@ -53,18 +59,26 @@ const setupSocket = (server) => {
         socket.on('send-message', async (data) => {
             const { channelId, senderId, message } = data;
             const channel = await Channel_1.Channel.findById(channelId);
-            const workspaceId = channel?.workspaceId;
+            if (!channel || !message.trim()) {
+                return;
+            }
             const newMessage = await Message_1.Message.create({
-                workspaceId,
+                workspaceId: channel.workspaceId,
                 channelId,
                 senderId,
                 message
             });
             const populatedMessage = await newMessage.populate('senderId', 'name avatar');
             io.to(`channel-${channelId}`).emit('receive-message', {
-                _id: populatedMessage._id.toString(),
+                id: populatedMessage._id.toString(),
                 channelId,
-                sender: populatedMessage.senderId,
+                sender: {
+                    id: (populatedMessage.senderId._id?.toString())
+                        ?? populatedMessage.senderId.id
+                        ?? '',
+                    name: populatedMessage.senderId.name ?? 'User',
+                    avatar: populatedMessage.senderId.avatar ?? ''
+                },
                 message,
                 createdAt: populatedMessage.createdAt
             });

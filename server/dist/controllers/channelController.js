@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.deleteChannel = exports.updateChannel = exports.getChannel = exports.getChannels = exports.createChannel = void 0;
 const Channel_1 = require("../models/Channel");
 const Workspace_1 = require("../models/Workspace");
+const access_1 = require("../utils/access");
 const createChannel = async (req, res) => {
     const { workspaceId, name, description } = req.body;
     const userId = req.user?.id;
@@ -10,7 +11,7 @@ const createChannel = async (req, res) => {
         return res.status(401).json({ success: false, message: 'Unauthorized' });
     }
     const workspace = await Workspace_1.Workspace.findById(workspaceId);
-    if (!workspace || !workspace.members.some((m) => m.toString() === userId)) {
+    if (!workspace || !(0, access_1.isWorkspaceMember)(workspace.members, userId)) {
         return res.status(403).json({ success: false, message: 'Forbidden' });
     }
     const channel = await Channel_1.Channel.create({
@@ -24,15 +25,25 @@ const createChannel = async (req, res) => {
 exports.createChannel = createChannel;
 const getChannels = async (req, res) => {
     const { workspaceId } = req.params;
+    const userId = req.user?.id;
+    const workspace = await Workspace_1.Workspace.findById(workspaceId);
+    if (!workspace || !(0, access_1.isWorkspaceMember)(workspace.members, userId)) {
+        return res.status(403).json({ success: false, message: 'Forbidden' });
+    }
     const channels = await Channel_1.Channel.find({ workspaceId }).populate('createdBy', 'name email');
     res.json({ success: true, data: channels });
 };
 exports.getChannels = getChannels;
 const getChannel = async (req, res) => {
     const { id } = req.params;
+    const userId = req.user?.id;
     const channel = await Channel_1.Channel.findById(id).populate('createdBy', 'name email');
     if (!channel) {
         return res.status(404).json({ success: false, message: 'Channel not found' });
+    }
+    const workspace = await Workspace_1.Workspace.findById(channel.workspaceId);
+    if (!workspace || !(0, access_1.isWorkspaceMember)(workspace.members, userId)) {
+        return res.status(403).json({ success: false, message: 'Forbidden' });
     }
     res.json({ success: true, data: channel });
 };
@@ -45,7 +56,9 @@ const updateChannel = async (req, res) => {
     if (!channel) {
         return res.status(404).json({ success: false, message: 'Channel not found' });
     }
-    if (channel.createdBy.toString() !== userId) {
+    const workspace = await Workspace_1.Workspace.findById(channel.workspaceId);
+    const canManageChannel = (0, access_1.matchesId)(channel.createdBy, userId) || (0, access_1.matchesId)(workspace?.owner, userId);
+    if (!canManageChannel) {
         return res.status(403).json({ success: false, message: 'Forbidden' });
     }
     channel.name = name || channel.name;
@@ -61,7 +74,9 @@ const deleteChannel = async (req, res) => {
     if (!channel) {
         return res.status(404).json({ success: false, message: 'Channel not found' });
     }
-    if (channel.createdBy.toString() !== userId) {
+    const workspace = await Workspace_1.Workspace.findById(channel.workspaceId);
+    const canManageChannel = (0, access_1.matchesId)(channel.createdBy, userId) || (0, access_1.matchesId)(workspace?.owner, userId);
+    if (!canManageChannel) {
         return res.status(403).json({ success: false, message: 'Forbidden' });
     }
     await Channel_1.Channel.deleteOne({ _id: id });

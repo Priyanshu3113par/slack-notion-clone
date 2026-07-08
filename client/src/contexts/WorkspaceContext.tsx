@@ -1,18 +1,26 @@
-import { createContext, useState, ReactNode } from 'react';
-import { Workspace } from '../types/index';
+import { createContext, useEffect, useState, ReactNode } from 'react';
 
 interface WorkspaceContextType {
-  activeWorkspace: Workspace | null;
-  setActiveWorkspace: (workspace: Workspace | null) => void;
+  activeWorkspaceId: string | null;
+  setActiveWorkspaceId: (workspaceId: string | null) => void;
 }
 
 export const WorkspaceContext = createContext<WorkspaceContextType | undefined>(undefined);
 
 export const WorkspaceProvider = ({ children }: { children: ReactNode }) => {
-  const [activeWorkspace, setActiveWorkspace] = useState<Workspace | null>(null);
+  const [activeWorkspaceId, setActiveWorkspaceId] = useState<string | null>(() => localStorage.getItem('activeWorkspaceId'));
+
+  useEffect(() => {
+    if (activeWorkspaceId) {
+      localStorage.setItem('activeWorkspaceId', activeWorkspaceId);
+      return;
+    }
+
+    localStorage.removeItem('activeWorkspaceId');
+  }, [activeWorkspaceId]);
 
   return (
-    <WorkspaceContext.Provider value={{ activeWorkspace, setActiveWorkspace }}>
+    <WorkspaceContext.Provider value={{ activeWorkspaceId, setActiveWorkspaceId }}>
       {children}
     </WorkspaceContext.Provider>
   );

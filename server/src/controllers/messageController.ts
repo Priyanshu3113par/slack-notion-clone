@@ -1,17 +1,42 @@
 import { Request, Response } from 'express';
 import { Message } from '../models/Message';
 import { Channel } from '../models/Channel';
+import { Workspace } from '../models/Workspace';
+import { isWorkspaceMember } from '../utils/access';
 
 export const getMessages = async (req: Request, res: Response) => {
   const { channelId, workspaceId } = req.query;
+  const routeChannelId = req.params.channelId;
+  const effectiveChannelId = String(channelId || routeChannelId || '');
+  const effectiveWorkspaceId = String(workspaceId || '');
+  const userId = req.user?.id;
   const filters: Record<string, string> = {};
 
-  if (channelId) {
-    filters.channelId = String(channelId);
+  if (effectiveChannelId) {
+    const channel = await Channel.findById(effectiveChannelId);
+    if (!channel) {
+      return res.status(404).json({ success: false, message: 'Channel not found' });
+    }
+
+    const workspace = await Workspace.findById(channel.workspaceId);
+    if (!workspace || !isWorkspaceMember(workspace.members, userId)) {
+      return res.status(403).json({ success: false, message: 'Forbidden' });
+    }
+
+    filters.channelId = effectiveChannelId;
   }
 
-  if (workspaceId) {
-    filters.workspaceId = String(workspaceId);
+  if (effectiveWorkspaceId) {
+    const workspace = await Workspace.findById(effectiveWorkspaceId);
+    if (!workspace || !isWorkspaceMember(workspace.members, userId)) {
+      return res.status(403).json({ success: false, message: 'Forbidden' });
+    }
+
+    filters.workspaceId = effectiveWorkspaceId;
+  }
+
+  if (!effectiveChannelId && !effectiveWorkspaceId) {
+    return res.status(400).json({ success: false, message: 'channelId or workspaceId is required' });
   }
 
   const messages = await Message.find(filters)
@@ -36,6 +61,11 @@ export const createMessage = async (req: Request, res: Response) => {
   const channel = await Channel.findById(channelId);
   if (!channel) {
     return res.status(404).json({ success: false, message: 'Channel not found' });
+  }
+
+  const workspace = await Workspace.findById(channel.workspaceId);
+  if (!workspace || !isWorkspaceMember(workspace.members, userId)) {
+    return res.status(403).json({ success: false, message: 'Forbidden' });
   }
 
   const newMessage = await Message.create({

@@ -6,6 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.leaveWorkspace = exports.joinWorkspace = exports.deleteWorkspace = exports.updateWorkspace = exports.getWorkspace = exports.getWorkspaces = exports.createWorkspace = void 0;
 const Workspace_1 = require("../models/Workspace");
 const crypto_1 = __importDefault(require("crypto"));
+const access_1 = require("../utils/access");
 const createWorkspace = async (req, res) => {
     const { name, description } = req.body;
     const userId = req.user?.id;
@@ -49,7 +50,7 @@ const getWorkspace = async (req, res) => {
     if (!workspace) {
         return res.status(404).json({ success: false, message: 'Workspace not found' });
     }
-    if (!userId || !workspace.members.some((member) => member.toString() === userId)) {
+    if (!(0, access_1.isWorkspaceMember)(workspace.members, userId)) {
         return res.status(403).json({ success: false, message: 'Forbidden' });
     }
     res.json({ success: true, data: workspace });
@@ -96,7 +97,7 @@ const joinWorkspace = async (req, res) => {
     if (!workspace) {
         return res.status(404).json({ success: false, message: 'Invalid invite code' });
     }
-    if (workspace.members.includes(userId)) {
+    if ((0, access_1.isWorkspaceMember)(workspace.members, userId)) {
         return res.status(400).json({ success: false, message: 'Already a member' });
     }
     workspace.members.push(userId);

@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { Channel } from '../models/Channel';
 import { Workspace } from '../models/Workspace';
+import { isWorkspaceMember, matchesId } from '../utils/access';
 
 export const createChannel = async (req: Request, res: Response) => {
   const { workspaceId, name, description } = req.body;
@@ -11,7 +12,7 @@ export const createChannel = async (req: Request, res: Response) => {
   }
 
   const workspace = await Workspace.findById(workspaceId);
-  if (!workspace || !workspace.members.some((m) => m.toString() === userId)) {
+  if (!workspace || !isWorkspaceMember(workspace.members, userId)) {
     return res.status(403).json({ success: false, message: 'Forbidden' });
   }
 
@@ -27,6 +28,13 @@ export const createChannel = async (req: Request, res: Response) => {
 
 export const getChannels = async (req: Request, res: Response) => {
   const { workspaceId } = req.params;
+  const userId = req.user?.id;
+  const workspace = await Workspace.findById(workspaceId);
+
+  if (!workspace || !isWorkspaceMember(workspace.members, userId)) {
+    return res.status(403).json({ success: false, message: 'Forbidden' });
+  }
+
   const channels = await Channel.find({ workspaceId }).populate('createdBy', 'name email');
 
   res.json({ success: true, data: channels });
@@ -34,10 +42,16 @@ export const getChannels = async (req: Request, res: Response) => {
 
 export const getChannel = async (req: Request, res: Response) => {
   const { id } = req.params;
+  const userId = req.user?.id;
   const channel = await Channel.findById(id).populate('createdBy', 'name email');
 
   if (!channel) {
     return res.status(404).json({ success: false, message: 'Channel not found' });
+  }
+
+  const workspace = await Workspace.findById(channel.workspaceId);
+  if (!workspace || !isWorkspaceMember(workspace.members, userId)) {
+    return res.status(403).json({ success: false, message: 'Forbidden' });
   }
 
   res.json({ success: true, data: channel });
@@ -53,7 +67,10 @@ export const updateChannel = async (req: Request, res: Response) => {
     return res.status(404).json({ success: false, message: 'Channel not found' });
   }
 
-  if (channel.createdBy.toString() !== userId) {
+  const workspace = await Workspace.findById(channel.workspaceId);
+  const canManageChannel = matchesId(channel.createdBy, userId) || matchesId(workspace?.owner, userId);
+
+  if (!canManageChannel) {
     return res.status(403).json({ success: false, message: 'Forbidden' });
   }
 
@@ -73,7 +90,10 @@ export const deleteChannel = async (req: Request, res: Response) => {
     return res.status(404).json({ success: false, message: 'Channel not found' });
   }
 
-  if (channel.createdBy.toString() !== userId) {
+  const workspace = await Workspace.findById(channel.workspaceId);
+  const canManageChannel = matchesId(channel.createdBy, userId) || matchesId(workspace?.owner, userId);
+
+  if (!canManageChannel) {
     return res.status(403).json({ success: false, message: 'Forbidden' });
   }
 

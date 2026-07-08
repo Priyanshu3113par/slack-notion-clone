@@ -1,7 +1,12 @@
 import dotenv from 'dotenv';
 import path from 'path';
 
-dotenv.config({ path: path.resolve(process.cwd(), '.env') });
+[
+  path.resolve(process.cwd(), '.env'),
+  path.resolve(process.cwd(), '.env.local'),
+  path.resolve(process.cwd(), '..', '.env'),
+  path.resolve(process.cwd(), '..', '.env.local')
+].forEach((envPath) => dotenv.config({ path: envPath, override: false }));
 
 export const env = {
   nodeEnv: process.env.NODE_ENV || 'development',

@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, ChangeEvent, FormEvent } from 'react';
 import { useChatEvents, useSocket } from '../hooks/useSocket';
+import { formatShortTime, getInitials } from '../utils/entities';
 
 interface ChatWindowProps {
   channelId: string;
@@ -19,121 +20,127 @@ const ChatWindow = ({ channelId, channelName, userId }: ChatWindowProps) => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const handleInputChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
-    const nextValue = e.target.value;
+  const stopTypingSoon = () => {
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+
+    typingTimeoutRef.current = setTimeout(() => {
+      setIsTyping(false);
+      emitStopTyping(userId);
+    }, 2500);
+  };
+
+  const handleInputChange = (event: ChangeEvent<HTMLTextAreaElement>) => {
+    const nextValue = event.target.value;
     setInputValue(nextValue);
 
     if (!isTyping && nextValue.trim()) {
       setIsTyping(true);
-      const userName = localStorage.getItem('userName') || 'User';
-      emitTyping(userId, userName);
+      emitTyping(userId, localStorage.getItem('userName') || 'User');
     }
 
-    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
-    typingTimeoutRef.current = setTimeout(() => {
-      setIsTyping(false);
-      emitStopTyping(userId);
-    }, 3000);
+    stopTypingSoon();
   };
 
-  const handleSubmit = (e: FormEvent) => {
-    e.preventDefault();
-    if (!inputValue.trim()) return;
-    sendMessage(inputValue, userId);
+  const submitMessage = () => {
+    const message = inputValue.trim();
+    if (!message) {
+      return;
+    }
+
+    sendMessage(message, userId);
     setInputValue('');
     setIsTyping(false);
     emitStopTyping(userId);
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      if (inputValue.trim()) {
-        sendMessage(inputValue, userId);
-        setInputValue('');
-        setIsTyping(false);
-        emitStopTyping(userId);
-      }
+  const handleSubmit = (event: FormEvent) => {
+    event.preventDefault();
+    submitMessage();
+  };
+
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault();
+      submitMessage();
     }
   };
 
   return (
-    <div className="flex h-full flex-col bg-[radial-gradient(circle_at_top,_rgba(56,189,248,0.16),_transparent_24%),linear-gradient(180deg,_#020617_0%,_#071120_100%)]">
-      <header className="border-b border-white/10 bg-slate-900/80 px-6 py-4 backdrop-blur-xl">
+    <div className="flex h-full flex-col bg-[#f6f8fb]">
+      <header className="border-b border-slate-200 bg-white px-8 py-5">
         <div className="flex items-center justify-between gap-4">
           <div>
-            <p className="text-sm font-semibold text-white"># {channelName}</p>
-            <p className="text-xs text-slate-400">Enter to send · Shift+Enter for new line</p>
+            <p className="text-xs font-bold uppercase tracking-[0.22em] text-slate-400">Channel</p>
+            <h1 className="mt-1 text-2xl font-bold text-slate-950"># {channelName}</h1>
           </div>
-          <div className="flex items-center gap-2 rounded-full border border-slate-700 bg-slate-950/70 px-3 py-2 text-xs text-slate-300">
-            <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+          <span className="inline-flex items-center gap-2 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700">
+            <span className="h-2 w-2 rounded-full bg-emerald-500" />
             Live
-          </div>
+          </span>
         </div>
       </header>
 
-      <div className="flex-1 overflow-y-auto px-6 py-6">
+      <div className="flex-1 overflow-y-auto px-8 py-6">
         {messages.length === 0 ? (
-          <div className="flex h-full flex-col items-center justify-center rounded-[2rem] border border-dashed border-slate-700 bg-slate-900/40 p-10 text-center text-slate-400">
-            <p className="text-lg font-semibold text-white">No messages yet</p>
-            <p className="mt-2 max-w-md text-sm leading-6">Start the conversation in #{channelName}.</p>
+          <div className="flex h-full flex-col items-center justify-center rounded-lg border border-dashed border-slate-300 bg-white p-10 text-center">
+            <p className="text-lg font-bold text-slate-950">Start the conversation</p>
+            <p className="mt-2 max-w-md text-sm leading-6 text-slate-500">Messages posted here are shared with everyone in #{channelName}.</p>
           </div>
         ) : (
-          <div className="space-y-4">
-            {messages.map((msg) => {
-              // Support both populated sender object and raw senderId string
-              const sender = msg.sender || {};
-              const senderName: string = sender.name || 'User';
-              const initial = senderName.charAt(0).toUpperCase();
-              const senderId = sender._id || sender.id || msg.senderId || '';
+          <div className="mx-auto max-w-4xl space-y-3">
+            {messages.map((message) => {
+              const senderName = message.sender?.name || 'User';
+              const senderId = message.sender?.id || message.senderId || '';
               const isOwn = senderId === userId;
 
               return (
-                <div key={msg._id} className={`flex gap-3 rounded-[1.35rem] border p-4 shadow-lg shadow-slate-950/20 ${isOwn ? 'border-indigo-500/20 bg-indigo-950/30' : 'border-white/10 bg-slate-900/70'}`}>
-                  <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-500 to-cyan-400 font-semibold text-slate-950">
-                    {initial}
+                <article key={message.id || message._id} className={`flex gap-3 rounded-lg border p-4 shadow-sm ${isOwn ? 'border-sky-200 bg-sky-50' : 'border-slate-200 bg-white'}`}>
+                  <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-md text-sm font-bold ${isOwn ? 'bg-slate-950 text-white' : 'bg-slate-100 text-slate-700'}`}>
+                    {getInitials(senderName)}
                   </div>
-                  <div className="flex-1 min-w-0">
+                  <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      <p className="text-sm font-semibold text-white">{senderName}</p>
-                      {isOwn && <span className="text-[10px] text-indigo-400 font-medium">You</span>}
-                      <span className="text-xs text-slate-500">
-                        {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </span>
+                      <p className="text-sm font-bold text-slate-950">{senderName}</p>
+                      {isOwn && <span className="rounded-sm bg-slate-950 px-1.5 py-0.5 text-[10px] font-bold text-white">You</span>}
+                      <span className="text-xs text-slate-400">{formatShortTime(message.createdAt)}</span>
                     </div>
-                    <p className="mt-2 whitespace-pre-wrap text-sm leading-7 text-slate-300">{msg.message}</p>
+                    <p className="mt-2 whitespace-pre-wrap text-sm leading-7 text-slate-600">{message.message}</p>
                   </div>
-                </div>
+                </article>
               );
             })}
+
             {typingUsers.length > 0 && (
-              <div className="rounded-full border border-slate-800 bg-slate-900/80 px-4 py-2 text-sm text-slate-400">
+              <div className="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-500">
                 {typingUsers.map((user) => user.name).join(', ')} {typingUsers.length === 1 ? 'is' : 'are'} typing...
               </div>
             )}
+
             <div ref={messagesEndRef} />
           </div>
         )}
       </div>
 
-      <form onSubmit={handleSubmit} className="border-t border-white/10 bg-slate-900/80 p-4 backdrop-blur-xl">
-        <div className="rounded-[1.35rem] border border-slate-700 bg-slate-950/70 p-3">
+      <form onSubmit={handleSubmit} className="border-t border-slate-200 bg-white p-5">
+        <div className="mx-auto max-w-4xl rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
           <textarea
             value={inputValue}
             onChange={handleInputChange}
             onKeyDown={handleKeyDown}
-            placeholder={`Message #${channelName} · Enter to send`}
+            placeholder={`Message #${channelName}`}
             rows={3}
-            className="w-full resize-none bg-transparent px-2 py-2 text-sm text-slate-100 outline-none placeholder:text-slate-500"
+            className="w-full resize-none bg-transparent px-2 py-2 text-sm text-slate-800 outline-none placeholder:text-slate-400"
           />
-          <div className="mt-3 flex items-center justify-end gap-3">
-            <span className="text-xs text-slate-500">Shift+Enter for new line</span>
+          <div className="mt-2 flex items-center justify-between gap-3">
+            <span className="text-xs text-slate-400">Shift+Enter adds a new line</span>
             <button
               type="submit"
               disabled={!inputValue.trim()}
-              className="rounded-full bg-gradient-to-r from-sky-500 to-cyan-400 px-5 py-2 text-sm font-semibold text-slate-950 transition hover:from-sky-400 hover:to-cyan-300 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+              className="rounded-md bg-slate-950 px-4 py-2 text-sm font-bold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-40"
             >
-              Send ↵
+              Send
             </button>
           </div>
         </div>

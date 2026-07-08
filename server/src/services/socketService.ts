@@ -45,9 +45,15 @@ export const setupSocket = (server: HTTPServer) => {
       socket.emit(
         'channel-history',
         recentMessages.map((message) => ({
-          _id: message._id.toString(),
+          id: message._id.toString(),
           channelId,
-          sender: message.senderId,
+          sender: {
+            id: (message.senderId as { _id?: { toString(): string }; id?: string })._id?.toString()
+              ?? (message.senderId as { id?: string }).id
+              ?? '',
+            name: (message.senderId as { name?: string }).name ?? 'User',
+            avatar: (message.senderId as { avatar?: string }).avatar ?? ''
+          },
           message: message.message,
           createdAt: message.createdAt
         }))
@@ -64,10 +70,12 @@ export const setupSocket = (server: HTTPServer) => {
     socket.on('send-message', async (data: { channelId: string; senderId: string; message: string }) => {
       const { channelId, senderId, message } = data;
       const channel = await Channel.findById(channelId);
-      const workspaceId = channel?.workspaceId;
+      if (!channel || !message.trim()) {
+        return;
+      }
 
       const newMessage = await Message.create({
-        workspaceId,
+        workspaceId: channel.workspaceId,
         channelId,
         senderId,
         message
@@ -76,9 +84,15 @@ export const setupSocket = (server: HTTPServer) => {
       const populatedMessage = await newMessage.populate('senderId', 'name avatar');
 
       io.to(`channel-${channelId}`).emit('receive-message', {
-        _id: populatedMessage._id.toString(),
+        id: populatedMessage._id.toString(),
         channelId,
-        sender: populatedMessage.senderId,
+        sender: {
+          id: ((populatedMessage.senderId as { _id?: { toString(): string }; id?: string })._id?.toString())
+            ?? (populatedMessage.senderId as { id?: string }).id
+            ?? '',
+          name: (populatedMessage.senderId as { name?: string }).name ?? 'User',
+          avatar: (populatedMessage.senderId as { avatar?: string }).avatar ?? ''
+        },
         message,
         createdAt: populatedMessage.createdAt
       });

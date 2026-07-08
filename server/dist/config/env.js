@@ -6,7 +6,12 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.env = void 0;
 const dotenv_1 = __importDefault(require("dotenv"));
 const path_1 = __importDefault(require("path"));
-dotenv_1.default.config({ path: path_1.default.resolve(process.cwd(), '.env') });
+[
+    path_1.default.resolve(process.cwd(), '.env'),
+    path_1.default.resolve(process.cwd(), '.env.local'),
+    path_1.default.resolve(process.cwd(), '..', '.env'),
+    path_1.default.resolve(process.cwd(), '..', '.env.local')
+].forEach((envPath) => dotenv_1.default.config({ path: envPath, override: false }));
 exports.env = {
     nodeEnv: process.env.NODE_ENV || 'development',
     port: Number(process.env.PORT || 4000),

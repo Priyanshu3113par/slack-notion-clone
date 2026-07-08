@@ -1,180 +1,175 @@
 import { Link } from 'react-router-dom';
 
-const LandingPage = () => {
-  const features = [
-    {
-      title: 'Realtime collaboration',
-      description: 'Instant chat, presence, and channel workflows for teams that move fast.'
-    },
-    {
-      title: 'Modern workspace',
-      description: 'Organize projects, docs, and channels in a polished, easy-to-use interface.'
-    },
-    {
-      title: 'Secure by default',
-      description: 'Workspace access controls, secure auth, and encrypted session handling.'
-    },
-    {
-      title: 'Built for scale',
-      description: 'Fast Socket.IO sync, MongoDB persistence, and resilient team workflows.'
-    }
-  ];
+const metrics = [
+  { label: 'Active teams', value: '128' },
+  { label: 'Live channels', value: '840' },
+  { label: 'Docs updated', value: '18k' },
+  { label: 'Avg response', value: '42ms' }
+];
 
+const workflow = [
+  {
+    title: 'Channels',
+    description: 'Focused team rooms for shipping, support, design, and operations.'
+  },
+  {
+    title: 'Documents',
+    description: 'Shared markdown notes with autosave, labels, preview mode, and co-editing.'
+  },
+  {
+    title: 'Presence',
+    description: 'Online users and realtime typing signals powered by Socket.IO.'
+  },
+  {
+    title: 'Secure workspaces',
+    description: 'JWT auth, workspace membership checks, invite codes, and hashed passwords.'
+  }
+];
+
+const LandingPage = () => {
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(99,102,241,0.16),_transparent_24%),radial-gradient(circle_at_80%_10%,_rgba(56,189,248,0.12),_transparent_18%),linear-gradient(180deg,_#f8fafc_0%,_#eef2ff_30%,_#f8fafc_100%)] text-slate-950">
-      <div className="relative mx-auto max-w-7xl px-6 py-8 sm:px-8 lg:px-10">
-        <nav className="flex flex-wrap items-center justify-between gap-4 rounded-full border border-slate-200 bg-white/90 px-5 py-4 shadow-lg shadow-slate-200/50 backdrop-blur-xl">
-          <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-3xl bg-gradient-to-br from-indigo-600 to-cyan-500 text-lg font-bold text-white">D</div>
-            <div>
-              <p className="text-sm font-semibold text-slate-950">CollabHub</p>
-              <p className="text-xs text-slate-500">Workspace platform</p>
-            </div>
-          </div>
-          <div className="hidden items-center gap-8 md:flex">
+    <div className="min-h-screen bg-[#f6f8fb] text-slate-950">
+      <header className="border-b border-slate-200 bg-white">
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-6 py-4 lg:px-8">
+          <Link to="/" className="flex items-center gap-3">
+            <span className="flex h-10 w-10 items-center justify-center rounded-md bg-slate-950 text-sm font-black tracking-[0.18em] text-white">
+              CH
+            </span>
+            <span>
+              <span className="block text-sm font-black text-slate-950">CollabHub</span>
+              <span className="block text-xs font-semibold text-slate-500">Realtime workspace</span>
+            </span>
+          </Link>
+
+          <nav className="hidden items-center gap-6 md:flex">
             {['Product', 'Features', 'Solutions', 'Pricing', 'Company'].map((item) => (
-              <Link 
-                key={item} 
-                to={`/${item.toLowerCase()}`}
-                className="text-sm font-medium text-slate-600 transition hover:text-slate-950"
-              >
+              <Link key={item} to={`/${item.toLowerCase()}`} className="text-sm font-bold text-slate-500 hover:text-slate-950">
                 {item}
               </Link>
             ))}
-          </div>
-          <div className="flex items-center gap-3">
-            <Link to="/login" className="rounded-full px-4 py-2 text-sm font-medium text-slate-600 transition hover:text-slate-950">Log in</Link>
-            <Link
-              to="/register"
-              className="rounded-full bg-gradient-to-r from-indigo-600 via-sky-500 to-cyan-500 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-slate-300/40 transition hover:opacity-95"
-            >
+          </nav>
+
+          <div className="flex items-center gap-2">
+            <Link to="/login" className="rounded-md border border-slate-200 px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50">
+              Log in
+            </Link>
+            <Link to="/register" className="rounded-md bg-slate-950 px-4 py-2 text-sm font-bold text-white hover:bg-slate-800">
               Start free
             </Link>
           </div>
-        </nav>
+        </div>
+      </header>
 
-        <section className="grid gap-10 py-12 xl:grid-cols-[0.95fr_1.05fr] xl:items-center xl:gap-14">
-          <div className="space-y-8">
-            <div className="inline-flex items-center gap-2 rounded-full bg-sky-100 px-4 py-2 text-sm font-semibold text-sky-700 shadow-sm">
-              <span className="h-2.5 w-2.5 rounded-full bg-sky-500" />
-              Teams love the speed of live collaboration.
-            </div>
-            <div className="space-y-6">
-              <h1 className="text-5xl font-semibold tracking-tight text-slate-950 sm:text-6xl">A premium workspace built for teams who need speed, clarity, and focus.</h1>
-              <p className="max-w-2xl text-xl leading-9 text-slate-600">CollabHub combines channels, message threads, documents, and live presence into one modern control center that looks and feels polished.</p>
-            </div>
-            <div className="flex flex-wrap gap-4">
-              <Link
-                to="/register"
-                className="inline-flex items-center justify-center rounded-2xl bg-slate-950 px-6 py-3 text-sm font-semibold text-white shadow-xl shadow-slate-300/25 transition hover:bg-slate-800"
-              >
-                Start free trial
+      <main>
+        <section className="mx-auto grid max-w-7xl gap-10 px-6 py-12 lg:grid-cols-[0.85fr_1.15fr] lg:items-center lg:px-8 lg:py-16">
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.24em] text-sky-700">Slack plus Notion for focused teams</p>
+            <h1 className="mt-5 text-5xl font-black leading-[1.04] text-slate-950 sm:text-6xl">
+              CollabHub
+            </h1>
+            <p className="mt-5 max-w-2xl text-lg leading-8 text-slate-600">
+              A production-ready collaboration workspace with workspaces, channels, realtime chat, shared documents, presence, and secure backend access control.
+            </p>
+
+            <div className="mt-7 flex flex-wrap gap-3">
+              <Link to="/register" className="rounded-md bg-slate-950 px-5 py-3 text-sm font-black text-white hover:bg-slate-800">
+                Create workspace
               </Link>
-              <Link
-                to="/login"
-                className="inline-flex items-center justify-center rounded-2xl border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-slate-950 shadow-sm transition hover:border-slate-400"
-              >
-                View demo
+              <Link to="/login" className="rounded-md border border-slate-300 bg-white px-5 py-3 text-sm font-black text-slate-800 hover:bg-slate-50">
+                Open app
               </Link>
             </div>
-            <div className="grid gap-3 sm:grid-cols-3">
-              {['No credit card required', 'Deploy in minutes', 'Unlimited workspaces'].map((item) => (
-                <div key={item} className="rounded-3xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 shadow-sm">{item}</div>
+
+            <div className="mt-8 grid gap-3 sm:grid-cols-2">
+              {['JWT authentication', 'MongoDB persistence', 'Socket.IO realtime sync', 'Redis-ready presence'].map((item) => (
+                <div key={item} className="rounded-md border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 shadow-sm">
+                  {item}
+                </div>
               ))}
             </div>
           </div>
 
-          <div className="relative overflow-hidden rounded-[2.25rem] border border-slate-200 bg-white shadow-[0_45px_140px_rgba(15,23,42,0.08)]">
-            <div className="absolute -top-10 left-8 h-24 w-24 rounded-full bg-gradient-to-br from-indigo-500 to-cyan-400 opacity-20 blur-3xl" />
-            <div className="absolute -bottom-10 right-8 h-28 w-28 rounded-full bg-gradient-to-br from-sky-300 to-indigo-300 opacity-20 blur-3xl" />
-            <div className="relative overflow-hidden rounded-[2.25rem] bg-slate-950 text-slate-100">
-              <div className="border-b border-slate-800 px-6 py-4">
-                <div className="flex items-center justify-between text-sm text-slate-300">
-                  <span># product</span>
-                  <span className="flex items-center gap-2">
-                    <span className="h-2.5 w-2.5 rounded-full bg-emerald-400" />
-                    12 online
-                  </span>
-                </div>
+          <div className="rounded-lg border border-slate-200 bg-white shadow-xl">
+            <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
+              <div>
+                <p className="text-xs font-black uppercase tracking-[0.22em] text-slate-400">Workspace preview</p>
+                <p className="mt-1 text-lg font-black text-slate-950">Product Launch HQ</p>
               </div>
-              <div className="px-6 py-6 sm:px-8 sm:py-8">
-                <div className="mb-6 rounded-[1.75rem] border border-slate-800 bg-slate-900 p-4 shadow-inner shadow-slate-950/30">
-                  <div className="mb-4 flex items-center justify-between text-sm text-slate-400">
-                    <span># general</span>
-                    <span>12K</span>
-                  </div>
-                  <div className="space-y-4">
-                    {[
-                      {
-                        user: 'Priyanshu',
-                        time: '10:30 AM',
-                        line: "Good morning team! Today's focus: ship chat, docs, and task updates."
-                      },
-                      {
-                        user: 'Sneha',
-                        time: '10:32 AM',
-                        line: "I’ll polish the interface and add spacing to the new dashboard."
+              <span className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-black text-emerald-700">12 online</span>
+            </div>
 
-                      },
-                      {
-                        user: 'Rohit',
-                        time: '10:35 AM',
-                        line: 'Realtime sync is live. Test it with a second browser tab.'
-                      }
-                    ].map((message) => (
-                      <div key={message.user} className="rounded-3xl border border-slate-800 bg-slate-950/90 p-4">
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="flex items-center gap-3">
-                            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-500 to-indigo-500 text-lg font-semibold text-slate-950">{message.user.charAt(0)}</div>
-                            <div>
-                              <p className="font-semibold text-white">{message.user}</p>
-                              <p className="text-xs text-slate-500">{message.time}</p>
-                            </div>
-                          </div>
-                          <span className="rounded-full bg-slate-800 px-3 py-1 text-xs text-slate-400">Live</span>
-                        </div>
-                        <p className="mt-3 text-sm leading-6 text-slate-300">{message.line}</p>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="mt-5 rounded-3xl border border-slate-800 bg-slate-900/80 px-4 py-3 text-sm text-slate-400">Sneha and Rohit are typing…</div>
-                </div>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {[
-                    { label: 'Workspace members', value: '42' },
-                    { label: 'Active channels', value: '9' },
-                    { label: 'Open documents', value: '27' },
-                    { label: 'Unreads', value: '14' }
-                  ].map((stat) => (
-                    <div key={stat.label} className="rounded-3xl border border-slate-800 bg-slate-950/80 p-4">
-                      <p className="text-xs uppercase tracking-[0.28em] text-slate-400">{stat.label}</p>
-                      <p className="mt-2 text-2xl font-semibold text-white">{stat.value}</p>
+            <div className="grid min-h-[470px] lg:grid-cols-[220px_1fr]">
+              <aside className="border-b border-slate-200 bg-slate-950 p-4 text-white lg:border-b-0 lg:border-r">
+                <p className="text-xs font-black uppercase tracking-[0.22em] text-slate-500">Channels</p>
+                <div className="mt-3 space-y-1">
+                  {['general', 'product', 'engineering', 'support'].map((channel, index) => (
+                    <div key={channel} className={`rounded-md px-3 py-2 text-sm font-bold ${index === 1 ? 'bg-white text-slate-950' : 'text-slate-300'}`}>
+                      # {channel}
                     </div>
                   ))}
                 </div>
-              </div>
+                <p className="mt-6 text-xs font-black uppercase tracking-[0.22em] text-slate-500">Documents</p>
+                <div className="mt-3 space-y-2">
+                  {['Launch brief', 'Sprint plan', 'Customer notes'].map((doc) => (
+                    <div key={doc} className="rounded-md border border-white/10 px-3 py-2 text-xs font-bold text-slate-300">
+                      {doc}
+                    </div>
+                  ))}
+                </div>
+              </aside>
+
+              <section className="p-5">
+                <div className="mb-4 flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-black uppercase tracking-[0.22em] text-sky-700"># product</p>
+                    <h2 className="mt-1 text-xl font-black text-slate-950">Launch coordination</h2>
+                  </div>
+                  <span className="rounded-md border border-slate-200 px-3 py-1.5 text-xs font-black text-slate-500">Live</span>
+                </div>
+
+                <div className="space-y-3">
+                  {[
+                    ['Priyanshu', "Good morning team. Today's focus: ship chat, docs, and task updates."],
+                    ['Sneha', 'I will polish the interface and tighten spacing on the dashboard.'],
+                    ['Rohit', 'Realtime sync is live. Test it with a second browser tab.']
+                  ].map(([name, line]) => (
+                    <article key={name} className="rounded-md border border-slate-200 bg-slate-50 p-4">
+                      <div className="flex items-center gap-3">
+                        <span className="flex h-9 w-9 items-center justify-center rounded-md bg-white text-sm font-black text-slate-700 shadow-sm">{name[0]}</span>
+                        <div>
+                          <p className="text-sm font-black text-slate-950">{name}</p>
+                          <p className="text-xs text-slate-400">10:3{name.length} AM</p>
+                        </div>
+                      </div>
+                      <p className="mt-3 text-sm leading-6 text-slate-600">{line}</p>
+                    </article>
+                  ))}
+                </div>
+
+                <div className="mt-5 grid gap-3 sm:grid-cols-4">
+                  {metrics.map((metric) => (
+                    <div key={metric.label} className="rounded-md border border-slate-200 bg-white p-3">
+                      <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-400">{metric.label}</p>
+                      <p className="mt-2 text-xl font-black text-slate-950">{metric.value}</p>
+                    </div>
+                  ))}
+                </div>
+              </section>
             </div>
           </div>
         </section>
 
-        <section className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-          {features.map((feature) => (
-            <div key={feature.title} className="rounded-[2rem] border border-slate-200 bg-white px-6 py-8 shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
-              <p className="text-sm font-semibold uppercase tracking-[0.32em] text-indigo-600">{feature.title}</p>
-              <p className="mt-4 text-sm leading-7 text-slate-600">{feature.description}</p>
-            </div>
-          ))}
-        </section>
-
-        <section className="rounded-[2rem] border border-slate-200 bg-white px-6 py-8 shadow-[0_30px_90px_rgba(15,23,42,0.08)]">
-          <p className="text-sm uppercase tracking-[0.28em] text-slate-500">Trusted by fast-moving teams</p>
-          <div className="mt-6 grid gap-4 sm:grid-cols-3 lg:grid-cols-5">
-            {['Acme', 'Layer', 'Pulse', 'Sitemark', 'Catalog'].map((brand) => (
-              <div key={brand} className="rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700 shadow-sm">{brand}</div>
+        <section className="border-y border-slate-200 bg-white">
+          <div className="mx-auto grid max-w-7xl gap-4 px-6 py-10 sm:grid-cols-2 lg:grid-cols-4 lg:px-8">
+            {workflow.map((item) => (
+              <article key={item.title} className="rounded-md border border-slate-200 bg-white p-5">
+                <h3 className="text-sm font-black uppercase tracking-[0.18em] text-slate-950">{item.title}</h3>
+                <p className="mt-3 text-sm leading-6 text-slate-600">{item.description}</p>
+              </article>
             ))}
           </div>
         </section>
-      </div>
+      </main>
     </div>
   );
 };

@@ -1,7 +1,7 @@
 import api from './api';
 
 export const documentService = {
-  createDocument: (workspaceId: string, title: string, content: string = '', icon: string = '📄') =>
+  createDocument: (workspaceId: string, title: string, content: string = '', icon: string = 'NOTE') =>
     api.post('/documents', { workspaceId, title, content, icon }),
 
   getDocuments: (workspaceId: string) =>

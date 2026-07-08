@@ -7,7 +7,8 @@ export interface User {
 }
 
 export interface Workspace {
-  _id: string;
+  id: string;
+  _id?: string;
   name: string;
   description?: string;
   owner: User;
@@ -18,7 +19,8 @@ export interface Workspace {
 }
 
 export interface Channel {
-  _id: string;
+  id: string;
+  _id?: string;
   workspaceId: string;
   name: string;
   description?: string;
@@ -28,18 +30,22 @@ export interface Channel {
 }
 
 export interface Message {
-  _id: string;
+  id: string;
+  _id?: string;
   channelId: string;
-  senderId: string;
+  senderId?: string;
+  sender?: User;
   message: string;
   createdAt: string;
 }
 
 export interface Document {
-  _id: string;
+  id: string;
+  _id?: string;
   workspaceId: string;
   title: string;
   content: string;
+  icon?: string;
   createdBy: User;
   createdAt: string;
   updatedAt: string;
