@@ -1,206 +1,424 @@
-# Slack-Notion Clone
+# 🚀 Slack-Notion Clone
 
-A production-grade MERN SaaS collaboration workspace inspired by Slack and Notion with real-time messaging, workspace management, and document collaboration.
+A production-grade **Real-Time SaaS Collaboration Workspace** inspired by **Slack** and **Notion**, built using the **MERN Stack**. The platform enables teams to communicate, collaborate, manage workspaces, organize documents, and track tasks in a unified environment.
 
-## Tech Stack
+---
 
-- **Frontend**: React 19, TypeScript, Vite, Tailwind CSS v4, React Router, TanStack Query, Socket.IO
-- **Backend**: Node.js, Express, TypeScript, MongoDB, Redis, Socket.IO
-- **DevOps**: Docker, GitHub Actions CI/CD
+## ✨ Features
 
-## Getting started
+### 🔐 Authentication
+- User Registration & Login
+- JWT Access & Refresh Token Authentication
+- Secure Password Hashing using bcrypt
+- Protected Routes
+- Role-Based Access Control
 
-### Prerequisites
+### 🏢 Workspace Management
+- Create, Update & Delete Workspaces
+- Invite Members via Invite Code
+- Join & Leave Workspaces
+- Workspace Switching
 
-- Node.js 18+
-- MongoDB (local or Docker)
-- Redis (local or Docker)
-- npm or yarn
+### 💬 Channel Management
+- Create, Edit & Delete Channels
+- Organize Team Discussions
+- Channel-based Communication
 
-### Option 1: Local development
+### ⚡ Real-Time Messaging
+- Socket.IO Powered Live Chat
+- Typing Indicators
+- Online User Presence
+- Persistent Message History
 
-```bash
-cd p:\saas-workspace
+### 📄 Document Collaboration
+- Create & Edit Workspace Documents
+- Rich Document Management
+- Organized Workspace Documentation
 
-# Install dependencies
-npm run install-all
+### ✅ Task Management
+- Kanban Board
+- Todo
+- In Progress
+- Review
+- Completed
+- Task Assignment
 
-# Start both backend and frontend
-npm run dev
+### 📁 File Management
+- Upload Files
+- Image Support
+- Document Storage
+- File Metadata Management
+
+### ⚙ Backend Features
+- RESTful API Architecture
+- Express Middleware
+- MongoDB with Mongoose
+- Redis Session Caching
+- Error Handling Middleware
+- Environment Configuration
+- Clean Architecture
+
+---
+
+# 🛠 Tech Stack
+
+## Frontend
+
+- React 19
+- TypeScript
+- Vite
+- Tailwind CSS v4
+- React Router DOM
+- TanStack Query
+- Axios
+- React Hook Form
+- Socket.IO Client
+
+---
+
+## Backend
+
+- Node.js
+- Express.js
+- TypeScript
+- MongoDB
+- Mongoose
+- JWT Authentication
+- bcrypt
+- Socket.IO
+- Redis
+
+---
+
+## DevOps
+
+- Docker
+- Docker Compose
+- GitHub Actions
+- ESLint
+- Prettier
+
+---
+
+# 📂 Project Structure
+
 ```
-
-Backend runs on `http://localhost:4000`  
-Frontend runs on `http://localhost:5173`
-
-### Option 2: Docker Compose
-
-```bash
-docker-compose up -d
-```
-
-Access:
-- Frontend: `http://localhost:5173`
-- Backend API: `http://localhost:4000/api/health`
-
-## Project structure
-
-```
-├── client/                 # React frontend
-│   ├── src/
-│   │   ├── pages/         # Page components
-│   │   ├── components/    # Reusable components
-│   │   ├── hooks/         # Custom hooks (Socket.IO, queries)
-│   │   ├── services/      # API and business logic
-│   │   ├── contexts/      # React contexts
-│   │   └── types/         # TypeScript types
+slack-notion-clone
+│
+├── client
+│   ├── src
+│   │   ├── components
+│   │   ├── pages
+│   │   ├── layouts
+│   │   ├── hooks
+│   │   ├── contexts
+│   │   ├── services
+│   │   ├── types
+│   │   └── utils
+│   ├── public
 │   ├── Dockerfile
 │   └── package.json
 │
-├── server/                # Express backend
-│   ├── src/
-│   │   ├── controllers/   # Route handlers
-│   │   ├── routes/        # API routes
-│   │   ├── models/        # MongoDB schemas
-│   │   ├── middleware/    # Auth, error handling
-│   │   ├── services/      # Business logic (Socket.IO, Redis)
-│   │   ├── config/        # Environment, Redis, database
-│   │   └── types/         # TypeScript definitions
+├── server
+│   ├── src
+│   │   ├── config
+│   │   ├── controllers
+│   │   ├── middleware
+│   │   ├── models
+│   │   ├── routes
+│   │   ├── services
+│   │   ├── sockets
+│   │   ├── utils
+│   │   └── types
 │   ├── Dockerfile
 │   └── package.json
 │
-├── docs/                  # Documentation
-├── .github/workflows/     # CI/CD pipelines
-├── docker-compose.yml     # Local dev environment
-└── README.md
+├── docs
+├── .github/workflows
+├── docker-compose.yml
+├── README.md
+└── package.json
 ```
 
-## Features
+---
 
-### Authentication
-- User registration and login
-- JWT access + refresh tokens
-- bcrypt password hashing
+# 🗄 Database Collections
 
-### Workspace Management
-- Create and manage workspaces
-- Invite users with codes
-- Join and leave workspaces
+- Users
+- Workspaces
+- Channels
+- Messages
+- Documents
+- Tasks
+- Files
 
-### Channels
-- Create channels within workspaces
-- Channel management (edit, delete)
-- Real-time message history
+---
 
-### Real-time Chat
-- Live messaging with Socket.IO
-- Typing indicators
-- Online user presence tracking
-- Message persistence
+# 🔌 REST API
 
-### Documents
-- Create workspace documents
-- Edit and manage content
-- Document history
-
-### Tasks
-- Kanban-style task board
-- Status tracking (todo, in-progress, review, completed)
-- Task assignment
-
-### Redis Integration
-- Session caching
-- Online user tracking
-- Scalable Socket.IO adapter
-
-## API Endpoints
-
-### Authentication
-- `POST /api/auth/register` - Register new user
-- `POST /api/auth/login` - Login user
-- `POST /api/auth/refresh` - Refresh token
-
-### Workspaces
-- `GET /api/workspaces` - List user workspaces
-- `POST /api/workspaces` - Create workspace
-- `GET /api/workspaces/:id` - Get workspace
-- `PUT /api/workspaces/:id` - Update workspace
-- `DELETE /api/workspaces/:id` - Delete workspace
-- `POST /api/workspaces/join` - Join workspace by code
-- `POST /api/workspaces/:id/leave` - Leave workspace
-
-### Channels
-- `GET /api/channels/workspace/:workspaceId` - List channels
-- `POST /api/channels` - Create channel
-- `GET /api/channels/:id` - Get channel
-- `PUT /api/channels/:id` - Update channel
-- `DELETE /api/channels/:id` - Delete channel
-
-### Messages
-- `GET /api/messages/channel/:channelId` - Get channel messages
-- `POST /api/messages` - Send message
-
-### Documents
-- `GET /api/documents/workspace/:workspaceId` - List documents
-- `POST /api/documents` - Create document
-- `GET /api/documents/:id` - Get document
-- `PUT /api/documents/:id` - Update document
-- `DELETE /api/documents/:id` - Delete document
-
-## Environment variables
-
-### Backend (.env)
+## Authentication
 
 ```
+POST /api/auth/register
+POST /api/auth/login
+POST /api/auth/refresh
+GET  /api/auth/profile
+```
+
+---
+
+## Workspaces
+
+```
+GET    /api/workspaces
+POST   /api/workspaces
+GET    /api/workspaces/:id
+PUT    /api/workspaces/:id
+DELETE /api/workspaces/:id
+POST   /api/workspaces/join
+POST   /api/workspaces/:id/leave
+```
+
+---
+
+## Channels
+
+```
+GET    /api/channels/workspace/:workspaceId
+POST   /api/channels
+GET    /api/channels/:id
+PUT    /api/channels/:id
+DELETE /api/channels/:id
+```
+
+---
+
+## Messages
+
+```
+GET  /api/messages/channel/:channelId
+POST /api/messages
+```
+
+---
+
+## Documents
+
+```
+GET    /api/documents/workspace/:workspaceId
+POST   /api/documents
+GET    /api/documents/:id
+PUT    /api/documents/:id
+DELETE /api/documents/:id
+```
+
+---
+
+## Tasks
+
+```
+GET    /api/tasks
+POST   /api/tasks
+PUT    /api/tasks/:id
+DELETE /api/tasks/:id
+```
+
+---
+
+# ⚙ Environment Variables
+
+## Backend
+
+```env
 NODE_ENV=development
 PORT=4000
-MONGO_URI=mongodb://localhost:27017/saas-collab
-JWT_SECRET=your_super_secret_key
+MONGO_URI=mongodb://localhost:27017/saas-workspace
+JWT_SECRET=your_secret_key
 JWT_EXPIRES_IN=15m
 REFRESH_TOKEN_EXPIRES_IN=7d
 REDIS_URL=redis://localhost:6379
 ```
 
-### Frontend (.env)
+---
 
-```
+## Frontend
+
+```env
 VITE_API_URL=http://localhost:4000
 ```
 
-## Development workflow
+---
 
-### Week 1: Authentication & Setup
-- ✅ Project scaffolding
-- ✅ User authentication (register, login, JWT)
-- ✅ Professional UI (landing, login, register)
-- ✅ Dashboard placeholder
+# 🚀 Local Setup
 
-### Week 2: Workspace & Channels
-- ✅ Workspace CRUD APIs
-- ✅ Channel CRUD APIs
-- ✅ Workspace switcher UI
-- ✅ Channel list UI
-
-
-## Week 2 end completd work with proper timeline
-
-## Testing
+## Clone Repository
 
 ```bash
-# Backend
-cd server
-npm run build
-npm start
-
-# Frontend
-cd client
-npm run build
-npm preview
+git clone https://github.com/Priyanshu3113par/slack-notion-clone.git
+cd slack-notion-clone
 ```
 
-## Contributing
+---
 
-Follow the existing code structure and TypeScript conventions. Ensure all changes are tested before submitting.
+## Install Dependencies
 
-## License
+```bash
+npm run install-all
+```
 
-MIT
+---
+
+## Run Development
+
+```bash
+npm run dev
+```
+
+Frontend
+
+```
+http://localhost:5173
+```
+
+Backend
+
+```
+http://localhost:4000
+```
+
+---
+
+# 🐳 Docker Deployment
+
+Build and start all services
+
+```bash
+docker-compose up --build
+```
+
+Application
+
+Frontend
+
+```
+http://localhost:5173
+```
+
+Backend
+
+```
+http://localhost:4000
+```
+
+---
+
+# ☁ Deployment
+
+## Frontend
+
+- Vercel
+
+## Backend
+
+- Render
+
+## Database
+
+- MongoDB Atlas
+
+## Cache
+
+- Redis Cloud
+
+---
+
+# 📊 Development Timeline
+
+### ✅ Week 1
+
+- Project Architecture
+- MERN Monorepo Setup
+- Authentication
+- JWT
+- Login & Registration
+- Landing Page
+- Dashboard Setup
+
+---
+
+### ✅ Week 2
+
+- MongoDB Models
+- Workspace CRUD
+- Channel CRUD
+- Protected APIs
+- Authentication Middleware
+- REST API Development
+
+---
+
+### ✅ Week 3
+
+- Socket.IO Integration
+- Real-Time Messaging
+- Online User Presence
+- Typing Indicators
+- Document Management
+- Task Management
+- File Upload Support
+
+---
+
+### ✅ Week 4
+
+- Complete Frontend & Backend Integration
+- MongoDB Integration
+- Redis Integration
+- Application Testing
+- Bug Fixes & Performance Improvements
+- Docker Configuration
+- CI/CD Workflow
+- Production Deployment
+- Documentation & Final Review
+
+---
+
+# 📸 Screenshots
+
+> Add application screenshots here after deployment.
+
+- Landing Page
+- Login
+- Dashboard
+- Workspace
+- Chat
+- Documents
+- Tasks
+
+---
+
+# 📈 Future Enhancements
+
+- Video Calling
+- Screen Sharing
+- Notifications
+- AI Assistant
+- Calendar Integration
+- Third-party Integrations
+- Mobile Application
+
+---
+
+# 👨‍💻 Author
+
+**Priyanshu Parate**
+
+B.Tech Electronics & Telecommunication Engineering
+
+MIT Academy of Engineering
+
+---
+
+# 📄 License
+
+This project is licensed under the MIT License.
